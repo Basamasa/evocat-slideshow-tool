@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Evocat Slideshow Tool</title>
+    <link rel="stylesheet" href="./styles.css" />
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="controls" aria-label="Slideshow controls">
+        <div class="brand-row">
+          <div>
+            <p class="eyebrow">Evocat image maker</p>
+            <h1>Slideshow generator</h1>
+          </div>
+          <button id="exportAll" class="primary">Export ZIP</button>
+        </div>
+
+        <div class="panel">
+          <label for="topic">Topic</label>
+          <textarea id="topic" rows="3">What to do based on your Screen Time number</textarea>
+          <div class="button-row">
+            <button id="draftFromTopic">Draft 8 slides</button>
+            <button id="copyPrompt">Copy AI prompt</button>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="split-label">
+            <label for="bulkSlides">Slide text</label>
+            <span>Separate slides with a blank line</span>
+          </div>
+          <textarea id="bulkSlides" class="bulk" rows="16"></textarea>
+          <div class="button-row">
+            <button id="applySlides">Update preview</button>
+            <button id="addSlide">Add slide</button>
+          </div>
+        </div>
+
+        <div class="panel compact-grid">
+          <div>
+            <label for="slideCount">Slides</label>
+            <input id="slideCount" type="number" min="1" max="12" value="8" />
+          </div>
+          <div>
+            <label for="exportSize">Export size</label>
+            <select id="exportSize">
+              <option value="2048">2048 x 2048</option>
+              <option value="1600">1600 x 1600</option>
+              <option value="1080">1080 x 1080</option>
+            </select>
+          </div>
+          <div>
+            <label for="fontScale">Text scale</label>
+            <input id="fontScale" type="range" min="82" max="112" value="100" />
+          </div>
+          <div>
+            <label for="footerBrand">Brand</label>
+            <input id="footerBrand" value="Evocat" />
+          </div>
+        </div>
+
+        <div class="slide-list" id="slideList" aria-label="Slides"></div>
+      </section>
+
+      <section class="stage" aria-label="Slide preview">
+        <div class="stage-toolbar">
+          <button id="prevSlide" aria-label="Previous slide">Prev</button>
+          <div>
+            <strong id="activeLabel">Slide 1</strong>
+            <span id="slideMeta">2048 x 2048 PNG</span>
+          </div>
+          <button id="nextSlide" aria-label="Next slide">Next</button>
+        </div>
+
+        <div class="preview-wrap">
+          <canvas id="previewCanvas" width="2048" height="2048"></canvas>
+        </div>
+      </section>
+    </main>
+
+    <script src="./app.js"></script>
+  </body>
+</html>
