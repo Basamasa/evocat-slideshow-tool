@@ -2,7 +2,7 @@
 
 A local browser tool for creating Evocat-style square slideshow images from human-written text or AI-generated text.
 
-## Run
+## Human UI
 
 Open this file directly in a browser:
 
@@ -12,13 +12,24 @@ index.html
 
 No backend, server, build step, or package install is required.
 
+## Agent CLI
+
+Agents without a browser should use the CLI renderer:
+
+```sh
+npm install
+npm run render -- --input examples/slides.json --out daily_posts/2026-05-18-screen-time/images --zip daily_posts/2026-05-18-screen-time/images.zip
+```
+
+The CLI writes PNG images directly to the output folder. The ZIP contains only PNG images.
+
 ## Workflow
 
 1. Write a topic, then click `Draft 8 slides`, or click `Copy AI prompt` and paste the result into ChatGPT.
 2. Paste slide text into `Slide text`.
 3. Separate slides with a blank line.
 4. Click `Update preview`.
-5. Click `Export ZIP`.
+5. Click `Export ZIP`, or use the CLI renderer.
 
 The slide text box accepts:
 

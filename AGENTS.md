@@ -1,12 +1,15 @@
 # Agent Instructions
 
-This repo is a local, static, browser-only tool for producing Evocat slideshow images.
+This repo is a local tool for producing Evocat slideshow images. It has two modes:
 
-Do not add a backend, server dependency, package manager, build step, or hosted service unless the user explicitly asks for it. The normal workflow is to open `index.html` directly in a browser and export a ZIP.
+- Browser UI for humans: open `index.html` directly.
+- CLI renderer for agents: run `npm run render`.
+
+Do not add a backend, server dependency, or hosted service unless the user explicitly asks for it. Agents without browser access should use the CLI renderer.
 
 ## Goal
 
-Given a topic or campaign brief, create 8 short slide texts, paste them into the tool, render the slides, and export the ZIP. The ZIP should contain only rendered PNG images.
+Given a topic or campaign brief, create 8 short slide texts, save them in the dated daily post folder, render the slides, and export image files. The ZIP should contain only rendered PNG images.
 
 ## Default Content Format
 
@@ -92,7 +95,28 @@ Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the 
 
 ## Output Convention
 
-When `Export ZIP` is clicked, the browser downloads a package named like:
+For daily agent work, use this folder layout:
+
+```text
+daily_posts/
+  YYYY-MM-DD-topic-slug/
+    draft.md
+    slides.txt
+    images/
+      evocat-slide-01.png
+      evocat-slide-02.png
+    images.zip
+    post.md
+    metrics.md
+```
+
+The CLI command should look like:
+
+```sh
+npm run render -- --input daily_posts/YYYY-MM-DD-topic-slug/slides.txt --out daily_posts/YYYY-MM-DD-topic-slug/images --zip daily_posts/YYYY-MM-DD-topic-slug/images.zip
+```
+
+When `Export ZIP` is clicked in the browser, or `--zip` is passed to the CLI, the browser/CLI creates a package named like:
 
 ```text
 YYYY-MM-DD-topic-slug.zip
@@ -108,7 +132,7 @@ YYYY-MM-DD-topic-slug/
 
 Do not put text, JSON, README files, metadata files, or source files into the export ZIP.
 
-If an agent needs to save draft text before exporting, use `content/` and name files with the date:
+If an agent needs to save reusable draft text outside a daily run, use `content/` and name files with the date:
 
 ```text
 content/YYYY-MM-DD-topic-slug.md
@@ -119,18 +143,19 @@ This draft-file convention is provisional. The user said they will provide the f
 ## Suggested Agent Workflow
 
 1. Read `README.md`, this file, and any user-provided campaign format.
-2. Generate 7 or 8 slides in the accepted input format.
-3. Open `index.html` locally in a browser.
-4. Paste the slide text and click `Update preview`.
-5. Inspect the preview for overflow, awkward wrapping, and wrong brand text.
-6. Click `Export ZIP`.
-7. Return the image-only ZIP path or upload the ZIP according to the current environment.
+2. Generate exactly 8 slides in the accepted input format.
+3. Save the draft and exact slide text in `daily_posts/YYYY-MM-DD-topic-slug/`.
+4. Show the slide text to the user and wait for approval.
+5. After approval, render with `npm run render`.
+6. Inspect the output images if your environment supports image viewing.
+7. Return the image folder and image-only ZIP path.
 
 ## Source Files
 
 - `index.html`: UI structure
 - `styles.css`: tool interface styling
 - `app.js`: slide renderer, parser, and ZIP exporter
+- `scripts/render.js`: browserless CLI renderer for agents
 - `assets/ironcat-app-icon.png`: mascot image used in slides
 - `content/`: optional dated draft text created by agents
 - `examples/`: sample input formats
