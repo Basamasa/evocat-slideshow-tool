@@ -291,22 +291,90 @@ async function exportAll() {
   els.exportAll.disabled = true;
   els.exportAll.textContent = "Exporting";
 
+  const stamp = makeDateStamp();
+  const slug = slugify(els.topic.value.trim() || "evocat-slides");
+  const packageName = `${stamp.date}-${slug}`;
   const entries = [];
   for (let index = 0; index < slides.length; index += 1) {
     activeIndex = index;
     render();
     const blob = await canvasToBlob();
     entries.push({
-      filename: `evocat-slide-${String(index + 1).padStart(2, "0")}.png`,
+      filename: `${packageName}/images/evocat-slide-${String(index + 1).padStart(2, "0")}.png`,
       data: new Uint8Array(await blob.arrayBuffer()),
     });
   }
 
-  downloadBlob(makeZip(entries), "evocat-slides.zip");
+  addTextEntry(entries, `${packageName}/text/slides-${stamp.date}.txt`, slidesToText());
+  addTextEntry(entries, `${packageName}/text/slides-${stamp.date}.json`, slidesToJson(stamp));
+  addTextEntry(entries, `${packageName}/README.txt`, exportReadme(packageName));
+
+  downloadBlob(makeZip(entries), `${packageName}.zip`);
   activeIndex = previous;
   render();
   els.exportAll.disabled = false;
   els.exportAll.textContent = "Export ZIP";
+}
+
+function addTextEntry(entries, filename, text) {
+  entries.push({
+    filename,
+    data: new TextEncoder().encode(text),
+  });
+}
+
+function makeDateStamp() {
+  const now = new Date();
+  const pad = (value) => String(value).padStart(2, "0");
+  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const time = `${pad(now.getHours())}-${pad(now.getMinutes())}-${pad(now.getSeconds())}`;
+  return {
+    date,
+    time,
+    iso: now.toISOString(),
+  };
+}
+
+function slugify(value) {
+  const slug = value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 56);
+  return slug || "evocat-slides";
+}
+
+function slidesToText() {
+  return slides
+    .map((slide, index) => `Slide ${index + 1}\n${slide.trim()}`)
+    .join("\n\n");
+}
+
+function slidesToJson(stamp) {
+  return JSON.stringify(
+    {
+      createdAt: stamp.iso,
+      topic: els.topic.value.trim(),
+      brand: els.footerBrand.value.trim() || "Evocat",
+      exportSize: Number(els.exportSize.value),
+      slideCount: slides.length,
+      slides,
+    },
+    null,
+    2
+  );
+}
+
+function exportReadme(packageName) {
+  return `Evocat slideshow export
+
+Package: ${packageName}
+
+Contents:
+- images/: rendered PNG slides
+- text/slides-YYYY-MM-DD.txt: human-readable slide text
+- text/slides-YYYY-MM-DD.json: structured slide text and export metadata
+`;
 }
 
 function downloadBlob(blob, filename) {

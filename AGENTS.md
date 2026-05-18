@@ -1,0 +1,93 @@
+# Agent Instructions
+
+This repo is a local, static, browser-only tool for producing Evocat slideshow images.
+
+Do not add a backend, server dependency, package manager, build step, or hosted service unless the user explicitly asks for it. The normal workflow is to open `index.html` directly in a browser and export a ZIP.
+
+## Goal
+
+Given a topic or campaign brief, create 7 or 8 short slide texts, paste them into the tool, render the slides, and export the ZIP. The ZIP saves both the rendered images and dated text files.
+
+## Input Format
+
+The slide text box accepts any of these formats:
+
+```text
+Slide one text
+
+Slide two text
+
+Slide three text
+```
+
+```text
+1. Slide one text
+
+2. Slide two text
+
+3. Slide three text
+```
+
+```json
+[
+  "Slide one text",
+  "Slide two text",
+  "Slide three text"
+]
+```
+
+Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default.
+
+## Output Convention
+
+When `Export ZIP` is clicked, the browser downloads a package named like:
+
+```text
+YYYY-MM-DD-topic-slug.zip
+```
+
+Inside the ZIP:
+
+```text
+YYYY-MM-DD-topic-slug/
+  images/
+    evocat-slide-01.png
+    evocat-slide-02.png
+  text/
+    slides-YYYY-MM-DD.txt
+    slides-YYYY-MM-DD.json
+  README.txt
+```
+
+The text files are included so future agents can inspect, reuse, or revise the exact copy used for the images.
+
+If an agent needs to save draft text before exporting, use `content/` and name files with the date:
+
+```text
+content/YYYY-MM-DD-topic-slug.md
+```
+
+This draft-file convention is provisional. The user said they will provide the final format later.
+
+## Suggested Agent Workflow
+
+1. Read `README.md`, this file, and any user-provided campaign format.
+2. Generate 7 or 8 slides in the accepted input format.
+3. Open `index.html` locally in a browser.
+4. Paste the slide text and click `Update preview`.
+5. Inspect the preview for overflow, awkward wrapping, and wrong brand text.
+6. Click `Export ZIP`.
+7. Return the ZIP path or upload the ZIP according to the current environment.
+
+## Source Files
+
+- `index.html`: UI structure
+- `styles.css`: tool interface styling
+- `app.js`: slide renderer, parser, and ZIP exporter
+- `assets/ironcat-app-icon.png`: mascot image used in slides
+- `content/`: optional dated draft text created by agents
+- `examples/`: sample input formats
+
+## Notes
+
+The user may provide a stricter content/file format later. When that happens, update this file, `README.md`, and the export metadata together.

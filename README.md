@@ -4,16 +4,13 @@ A local browser tool for creating Evocat-style square slideshow images from huma
 
 ## Run
 
-```sh
-cd /Users/anzerarkin/Documents/current_projects/evocat-slideshow-tool
-python3 -m http.server 4177
-```
-
-Open:
+Open this file directly in a browser:
 
 ```text
-http://localhost:4177/
+index.html
 ```
+
+No backend, server, build step, or package install is required.
 
 ## Workflow
 
@@ -29,4 +26,15 @@ The slide text box accepts:
 - numbered AI output like `1. First slide`
 - JSON arrays like `["Slide one", "Slide two"]`
 
-The default export is `2048 x 2048`. The ZIP contains one PNG per slide.
+The default export is `2048 x 2048`.
+
+The exported ZIP contains:
+
+- `images/`: one PNG per slide
+- `text/slides-YYYY-MM-DD.txt`: text copy of the slides
+- `text/slides-YYYY-MM-DD.json`: structured text and metadata
+- `README.txt`: export notes
+
+## For Agents
+
+Read `AGENTS.md` before using this repo as an internal content tool.
