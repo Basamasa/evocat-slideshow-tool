@@ -6,7 +6,7 @@ Do not add a backend, server dependency, package manager, build step, or hosted 
 
 ## Goal
 
-Given a topic or campaign brief, create 8 short slide texts, paste them into the tool, render the slides, and export the ZIP. The ZIP saves both the rendered images and dated text files.
+Given a topic or campaign brief, create 8 short slide texts, paste them into the tool, render the slides, and export the ZIP. The ZIP should contain only rendered PNG images.
 
 ## Default Content Format
 
@@ -102,16 +102,11 @@ Inside the ZIP:
 
 ```text
 YYYY-MM-DD-topic-slug/
-  images/
-    evocat-slide-01.png
-    evocat-slide-02.png
-  text/
-    slides-YYYY-MM-DD.txt
-    slides-YYYY-MM-DD.json
-  README.txt
+  evocat-slide-01.png
+  evocat-slide-02.png
 ```
 
-The text files are included so future agents can inspect, reuse, or revise the exact copy used for the images.
+Do not put text, JSON, README files, metadata files, or source files into the export ZIP.
 
 If an agent needs to save draft text before exporting, use `content/` and name files with the date:
 
@@ -129,7 +124,7 @@ This draft-file convention is provisional. The user said they will provide the f
 4. Paste the slide text and click `Update preview`.
 5. Inspect the preview for overflow, awkward wrapping, and wrong brand text.
 6. Click `Export ZIP`.
-7. Return the ZIP path or upload the ZIP according to the current environment.
+7. Return the image-only ZIP path or upload the ZIP according to the current environment.
 
 ## Source Files
 
@@ -142,4 +137,4 @@ This draft-file convention is provisional. The user said they will provide the f
 
 ## Notes
 
-The user may provide a stricter content/file format later. When that happens, update this file, `README.md`, and the export metadata together.
+The user may provide a stricter content/file format later. When that happens, update this file, `README.md`, and the examples together.

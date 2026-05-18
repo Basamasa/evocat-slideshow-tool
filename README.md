@@ -28,12 +28,7 @@ The slide text box accepts:
 
 The default export is `2048 x 2048`.
 
-The exported ZIP contains:
-
-- `images/`: one PNG per slide
-- `text/slides-YYYY-MM-DD.txt`: text copy of the slides
-- `text/slides-YYYY-MM-DD.json`: structured text and metadata
-- `README.txt`: export notes
+The exported ZIP contains only PNG images.
 
 ## For Agents
 

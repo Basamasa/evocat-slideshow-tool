@@ -300,27 +300,16 @@ async function exportAll() {
     render();
     const blob = await canvasToBlob();
     entries.push({
-      filename: `${packageName}/images/evocat-slide-${String(index + 1).padStart(2, "0")}.png`,
+      filename: `${packageName}/evocat-slide-${String(index + 1).padStart(2, "0")}.png`,
       data: new Uint8Array(await blob.arrayBuffer()),
     });
   }
-
-  addTextEntry(entries, `${packageName}/text/slides-${stamp.date}.txt`, slidesToText());
-  addTextEntry(entries, `${packageName}/text/slides-${stamp.date}.json`, slidesToJson(stamp));
-  addTextEntry(entries, `${packageName}/README.txt`, exportReadme(packageName));
 
   downloadBlob(makeZip(entries), `${packageName}.zip`);
   activeIndex = previous;
   render();
   els.exportAll.disabled = false;
   els.exportAll.textContent = "Export ZIP";
-}
-
-function addTextEntry(entries, filename, text) {
-  entries.push({
-    filename,
-    data: new TextEncoder().encode(text),
-  });
 }
 
 function makeDateStamp() {
@@ -342,39 +331,6 @@ function slugify(value) {
     .replace(/^-+|-+$/g, "")
     .slice(0, 56);
   return slug || "evocat-slides";
-}
-
-function slidesToText() {
-  return slides
-    .map((slide, index) => `Slide ${index + 1}\n${slide.trim()}`)
-    .join("\n\n");
-}
-
-function slidesToJson(stamp) {
-  return JSON.stringify(
-    {
-      createdAt: stamp.iso,
-      topic: els.topic.value.trim(),
-      brand: els.footerBrand.value.trim() || "Evocat",
-      exportSize: Number(els.exportSize.value),
-      slideCount: slides.length,
-      slides,
-    },
-    null,
-    2
-  );
-}
-
-function exportReadme(packageName) {
-  return `Evocat slideshow export
-
-Package: ${packageName}
-
-Contents:
-- images/: rendered PNG slides
-- text/slides-YYYY-MM-DD.txt: human-readable slide text
-- text/slides-YYYY-MM-DD.json: structured slide text and export metadata
-`;
 }
 
 function downloadBlob(blob, filename) {
