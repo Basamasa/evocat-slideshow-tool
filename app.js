@@ -21,14 +21,14 @@ const els = {
 };
 
 let slides = [
-  "What to do based on your Screen Time number",
-  "Under 2 hours/day\nKeep your setup boring. Do not add new infinite-scroll apps.",
-  "3 hours/day\nProtect it. Don't let short videos become your default break.",
-  "4 hours/day\nMove TikTok off your home screen. Make it search-only.",
-  "5 hours/day\nTurn off badges. Red numbers pull you back.",
-  "6+ hours/day\nAdd friction before the app opens. Make the habit visible.",
-  "When you feel the automatic tap, pause first. One breath is enough to break the loop.",
-  "Evocat helps make that app harder to reopen.\nSearch Evocat on the App Store.",
+  "Your Screen Time is high. Now what?",
+  "Check your top app first\nThat is where the spiral usually starts.",
+  "Don't fix the whole phone\nPick the app you reopen automatically.",
+  "Protect your worst time\nBedtime, mornings, work, or study.",
+  "Start with one clean hour\nNot a perfect day.",
+  "Move the app out of reach\nLess visible means less automatic.",
+  "The goal is not zero phone use\nThe goal is fewer automatic openings.",
+  "If you keep going back to the same app\nTry EvoCat on the App Store.",
 ];
 
 let activeIndex = 0;
@@ -256,16 +256,16 @@ function escapeHtml(value) {
 }
 
 function makeDraft(topic, count) {
-  const clean = topic.trim() || "Reduce scrolling";
+  const clean = topic.trim() || "Your Screen Time is high. Now what?";
   const base = [
     clean,
-    "Under 2 hours/day\nKeep your phone plain. Do not add new distractions.",
-    "3 hours/day\nProtect it. Don't let short videos become your default break.",
-    "4 hours/day\nMove the worst app off your home screen. Make it search-only.",
-    "5 hours/day\nTurn off badges. Red numbers pull you back.",
-    "6 hours/day\nAdd friction before the app opens. Make the habit visible.",
-    "7+ hours/day\nDelete the shortcut. Put one pause between the urge and the tap.",
-    "Evocat helps make that app harder to reopen.\nSearch Evocat on the App Store.",
+    "Check your top app first\nThat is where the spiral usually starts.",
+    "Don't fix the whole phone\nPick the app you reopen automatically.",
+    "Protect your worst time\nBedtime, mornings, work, or study.",
+    "Start with one clean hour\nNot a perfect day.",
+    "Move the app out of reach\nLess visible means less automatic.",
+    "The goal is not zero phone use\nThe goal is fewer automatic openings.",
+    "If you keep going back to the same app\nTry EvoCat on the App Store.",
   ];
   return base.slice(0, count);
 }
@@ -460,18 +460,24 @@ function crc32(data) {
 
 function buildPrompt() {
   const count = Number(els.slideCount.value) || 8;
-  return `Create ${count} short square social slides for Evocat, an app that helps people stop reopening distracting apps.
+  return `Create ${count} square social slideshow slides for EvoCat, an app that helps people stop reopening distracting apps.
 
 Topic: ${els.topic.value.trim()}
 
-Style rules:
-- One strong idea per slide.
-- 6 to 16 words per slide when possible.
-- Use plain direct language.
+Use this winning structure:
+- Slide 1: painful self-diagnosis question.
+- Slides 2-6: specific useful steps, each with a short headline and simple action.
+- Slide 7: core principle with a short memorable line.
+- Slide 8: soft EvoCat CTA that connects directly to the problem.
+
+Copy rules:
+- One idea per slide.
+- Keep language direct and useful.
 - No hashtags.
 - No emoji.
-- Make slide 1 a hook.
-- Make the last slide mention: Search Evocat on the App Store.
+- Avoid sounding like an ad.
+- Use line breaks inside slides when useful.
+- Last slide should be similar in tone to: If you keep going back to the same app / Try EvoCat on the App Store.
 
 Return only the slide texts separated by one blank line.`;
 }

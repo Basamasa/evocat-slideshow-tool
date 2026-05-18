@@ -6,7 +6,59 @@ Do not add a backend, server dependency, package manager, build step, or hosted 
 
 ## Goal
 
-Given a topic or campaign brief, create 7 or 8 short slide texts, paste them into the tool, render the slides, and export the ZIP. The ZIP saves both the rendered images and dated text files.
+Given a topic or campaign brief, create 8 short slide texts, paste them into the tool, render the slides, and export the ZIP. The ZIP saves both the rendered images and dated text files.
+
+## Default Content Format
+
+Use this winning slideshow format unless the user provides a different one:
+
+```text
+Hook = self-diagnosis
+Middle = specific useful steps
+Ending = friction / EvoCat soft CTA
+```
+
+Create exactly 8 slides:
+
+```text
+Slide 1
+[Painful self-diagnosis question]
+
+Slide 2
+[The first thing to check]
+[Very simple action]
+
+Slide 3
+[Find the biggest trigger]
+[Concrete check/action]
+
+Slide 4
+[Protect one specific time]
+[Bedtime / morning / work / study]
+
+Slide 5
+[Make the first win small]
+[One hour / one app / one time block]
+
+Slide 6
+[Explain the mistake people make]
+[Do this instead]
+
+Slide 7
+[Core principle]
+[Short memorable line]
+
+Slide 8
+[EvoCat soft CTA]
+[App Store search line]
+```
+
+The last slide should connect directly to the problem and should not feel like a hard ad. A good pattern is:
+
+```text
+If you keep going back to the same app
+Try EvoCat on the App Store.
+```
 
 ## Input Format
 
@@ -36,7 +88,7 @@ Slide three text
 ]
 ```
 
-Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default.
+Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default. Use line breaks inside a slide when the slide has a headline and supporting line.
 
 ## Output Convention
 
