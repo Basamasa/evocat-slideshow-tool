@@ -111,7 +111,7 @@ async function readSlides(inputPath) {
 function renderSvg({ text, brand, iconBase64, size }) {
   const scale = size / 2048;
   const s = (value) => value * scale;
-  const main = fitText(text, s(1360), s(650), s(134), s(66), 1.34);
+  const main = fitText(text, s(1240), s(650), s(134), s(66), 1.34);
   const dots = renderDots(size, scale);
 
   return `<?xml version="1.0" encoding="UTF-8"?>
@@ -189,13 +189,14 @@ function wrapText(text, maxWidth, fontSize) {
 function estimateWidth(text, fontSize) {
   let units = 0;
   for (const char of text) {
-    if (char === " ") units += 0.28;
-    else if ("il.,'!:;|".includes(char)) units += 0.26;
-    else if ("mwMW".includes(char)) units += 0.92;
-    else if (/[A-Z0-9]/.test(char)) units += 0.68;
-    else units += 0.58;
+    if (char === " ") units += 0.36;
+    else if ("il.,'!:;|".includes(char)) units += 0.32;
+    else if ("“”\"".includes(char)) units += 0.42;
+    else if ("mwMW".includes(char)) units += 1.02;
+    else if (/[A-Z0-9]/.test(char)) units += 0.78;
+    else units += 0.68;
   }
-  return units * fontSize;
+  return units * fontSize * 1.08;
 }
 
 function renderDots(size, scale) {

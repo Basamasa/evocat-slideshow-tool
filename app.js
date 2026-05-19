@@ -190,7 +190,7 @@ function drawMainText(text) {
   const scale = Number(els.fontScale.value) / 100;
   const x = 344 * s;
   const y = 570 * s;
-  const maxWidth = 1360 * s;
+  const maxWidth = 1240 * s;
   const maxHeight = 650 * s;
   const start = 134 * s * scale;
   const min = 66 * s;
