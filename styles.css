@@ -3,8 +3,7 @@
   font-style: normal;
   font-weight: 900;
   src:
-    url("./node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-900-normal.woff2") format("woff2"),
-    url("./node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-900-normal.woff") format("woff");
+    url("./assets/fonts/noto-serif-sc-chinese-simplified-900-normal.woff2") format("woff2");
 }
 
 :root {

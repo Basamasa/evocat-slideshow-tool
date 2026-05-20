@@ -8,10 +8,8 @@ const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const DEFAULT_ICON = path.join(ROOT, "assets", "ironcat-app-icon.png");
 const CJK_FONT_PATH = path.join(
   ROOT,
-  "node_modules",
-  "@fontsource",
-  "noto-serif-sc",
-  "files",
+  "assets",
+  "fonts",
   "noto-serif-sc-chinese-simplified-900-normal.woff2"
 );
 
@@ -37,7 +35,8 @@ await fs.mkdir(outDir, { recursive: true });
 
 const iconData = await fs.readFile(path.resolve(args.icon || DEFAULT_ICON));
 const iconBase64 = iconData.toString("base64");
-const cjkFontBase64 = await readOptionalBase64(CJK_FONT_PATH);
+const usesCjk = slides.some(hasCjk);
+const cjkFontBase64 = usesCjk ? await readRequiredBase64(CJK_FONT_PATH) : "";
 const written = [];
 
 for (let index = 0; index < slides.length; index += 1) {
@@ -118,11 +117,13 @@ async function readSlides(inputPath) {
     .filter(Boolean);
 }
 
-async function readOptionalBase64(filePath) {
+async function readRequiredBase64(filePath) {
   try {
     return (await fs.readFile(filePath)).toString("base64");
-  } catch {
-    return "";
+  } catch (error) {
+    throw new Error(
+      `Chinese text detected, but the bundled CJK font is missing at ${filePath}. Pull the latest repo and rerun.`
+    );
   }
 }
 
