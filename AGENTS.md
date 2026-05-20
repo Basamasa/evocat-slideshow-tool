@@ -93,6 +93,8 @@ Slide three text
 
 Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default. Use line breaks inside a slide when the slide has a headline and supporting line.
 
+Chinese slide text is supported. After `npm install`, the CLI renderer uses bundled Noto Serif SC and wraps Chinese text by character instead of relying on spaces. Use `examples/chinese-slides.txt` as a reference.
+
 ## Output Convention
 
 For daily agent work, use this folder layout:

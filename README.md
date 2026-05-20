@@ -37,6 +37,8 @@ The slide text box accepts:
 - numbered AI output like `1. First slide`
 - JSON arrays like `["Slide one", "Slide two"]`
 
+Chinese text is supported after `npm install`. See `examples/chinese-slides.txt`.
+
 The default export is `2048 x 2048`.
 
 The exported ZIP contains only PNG images.

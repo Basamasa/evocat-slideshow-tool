@@ -6,6 +6,14 @@ import sharp from "sharp";
 
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const DEFAULT_ICON = path.join(ROOT, "assets", "ironcat-app-icon.png");
+const CJK_FONT_PATH = path.join(
+  ROOT,
+  "node_modules",
+  "@fontsource",
+  "noto-serif-sc",
+  "files",
+  "noto-serif-sc-chinese-simplified-900-normal.woff2"
+);
 
 const args = parseArgs(process.argv.slice(2));
 
@@ -29,6 +37,7 @@ await fs.mkdir(outDir, { recursive: true });
 
 const iconData = await fs.readFile(path.resolve(args.icon || DEFAULT_ICON));
 const iconBase64 = iconData.toString("base64");
+const cjkFontBase64 = await readOptionalBase64(CJK_FONT_PATH);
 const written = [];
 
 for (let index = 0; index < slides.length; index += 1) {
@@ -38,6 +47,7 @@ for (let index = 0; index < slides.length; index += 1) {
     text: slides[index],
     brand,
     iconBase64,
+    cjkFontBase64,
     size,
   });
   await sharp(Buffer.from(svg)).png().toFile(output);
@@ -108,15 +118,28 @@ async function readSlides(inputPath) {
     .filter(Boolean);
 }
 
-function renderSvg({ text, brand, iconBase64, size }) {
+async function readOptionalBase64(filePath) {
+  try {
+    return (await fs.readFile(filePath)).toString("base64");
+  } catch {
+    return "";
+  }
+}
+
+function renderSvg({ text, brand, iconBase64, cjkFontBase64, size }) {
   const scale = size / 2048;
   const s = (value) => value * scale;
   const main = fitText(text, s(1240), s(650), s(134), s(66), 1.34);
   const dots = renderDots(size, scale);
+  const fontFamily = displayFontFor(text);
+  const fontFace = cjkFontBase64
+    ? `@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:900;src:url(data:font/woff2;base64,${cjkFontBase64}) format('woff2');}`
+    : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <defs>
+    <style>${fontFace}</style>
     <radialGradient id="bgGlow" cx="35%" cy="53%" r="48%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.045"/>
       <stop offset="36%" stop-color="#ffffff" stop-opacity="0.018"/>
@@ -140,7 +163,7 @@ function renderSvg({ text, brand, iconBase64, size }) {
     fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="${s(1.2)}"/>
 
   <text x="${s(344)}" y="${s(570)}" fill="#fffdf7"
-    font-family="Georgia, 'Times New Roman', serif" font-weight="900"
+    font-family="${fontFamily}" font-weight="900"
     font-size="${main.fontSize}" dominant-baseline="text-before-edge">
     ${main.lines.map((line, index) => `<tspan x="${s(344)}" dy="${index === 0 ? 0 : main.lineHeight}">${escapeXml(line)}</tspan>`).join("")}
   </text>
@@ -172,9 +195,11 @@ function wrapText(text, maxWidth, fontSize) {
   const lines = [];
   for (const paragraph of paragraphs) {
     let current = "";
-    for (const word of paragraph.split(/\s+/g)) {
-      const next = current ? `${current} ${word}` : word;
+    for (const word of tokenizeForWrap(paragraph)) {
+      const next = joinWrapToken(current, word);
       if (estimateWidth(next, fontSize) <= maxWidth || !current) {
+        current = next;
+      } else if (isClosingPunctuation(word)) {
         current = next;
       } else {
         lines.push(current);
@@ -186,7 +211,19 @@ function wrapText(text, maxWidth, fontSize) {
   return lines;
 }
 
+function tokenizeForWrap(text) {
+  if (!hasCjk(text)) return text.split(/\s+/g);
+  return Array.from(text).filter((char) => char !== "\n");
+}
+
+function joinWrapToken(current, token) {
+  if (!current) return token;
+  if (!hasCjk(current + token)) return `${current} ${token}`;
+  return `${current}${token}`;
+}
+
 function estimateWidth(text, fontSize) {
+  if (hasCjk(text)) return estimateCjkWidth(text, fontSize);
   let units = 0;
   for (const char of text) {
     if (char === " ") units += 0.36;
@@ -197,6 +234,31 @@ function estimateWidth(text, fontSize) {
     else units += 0.68;
   }
   return units * fontSize * 1.08;
+}
+
+function estimateCjkWidth(text, fontSize) {
+  let units = 0;
+  for (const char of text) {
+    if (char === " ") units += 0.35;
+    else if (/[\u3400-\u9fff\uf900-\ufaff]/.test(char)) units += 1;
+    else if (/[A-Z0-9]/.test(char)) units += 0.72;
+    else units += 0.62;
+  }
+  return units * fontSize * 1.04;
+}
+
+function hasCjk(text) {
+  return /[\u3400-\u9fff\uf900-\ufaff]/.test(text);
+}
+
+function isClosingPunctuation(token) {
+  return /^[。！？；：，、）】》」』”’.,!?;:%)]$/.test(token);
+}
+
+function displayFontFor(text) {
+  return hasCjk(text)
+    ? "'Noto Serif SC', 'Songti SC', 'STSong', 'SimSun', serif"
+    : "Georgia, 'Times New Roman', serif";
 }
 
 function renderDots(size, scale) {

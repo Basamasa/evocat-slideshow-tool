@@ -1,5 +1,7 @@
 const canvas = document.getElementById("previewCanvas");
 const ctx = canvas.getContext("2d");
+const LATIN_DISPLAY_FONT = 'Georgia, "Times New Roman", serif';
+const CJK_DISPLAY_FONT = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
 
 const els = {
   topic: document.getElementById("topic"),
@@ -35,6 +37,7 @@ let activeIndex = 0;
 const icon = new Image();
 icon.src = "./assets/ironcat-app-icon.png";
 icon.onload = render;
+if (document.fonts) document.fonts.ready.then(render);
 
 function splitSlides(value) {
   const trimmed = value.trim();
@@ -151,16 +154,17 @@ function drawIcon() {
 
 function fitFontSize(text, maxWidth, maxHeight, startSize, minSize, lineHeightRatio) {
   let fontSize = startSize;
+  const fontFamily = displayFontFor(text);
   while (fontSize >= minSize) {
-    ctx.font = `900 ${fontSize}px Georgia, "Times New Roman", serif`;
+    ctx.font = `900 ${fontSize}px ${fontFamily}`;
     const lines = wrapText(text, maxWidth);
     if (lines.length * fontSize * lineHeightRatio <= maxHeight) {
-      return { fontSize, lines };
+      return { fontSize, fontFamily, lines };
     }
     fontSize -= 4;
   }
-  ctx.font = `900 ${minSize}px Georgia, "Times New Roman", serif`;
-  return { fontSize: minSize, lines: wrapText(text, maxWidth) };
+  ctx.font = `900 ${minSize}px ${fontFamily}`;
+  return { fontSize: minSize, fontFamily, lines: wrapText(text, maxWidth) };
 }
 
 function wrapText(text, maxWidth) {
@@ -168,11 +172,13 @@ function wrapText(text, maxWidth) {
   const lines = [];
 
   for (const paragraph of paragraphs) {
-    const words = paragraph.split(/\s+/g);
+    const words = tokenizeForWrap(paragraph);
     let current = "";
     for (const word of words) {
-      const next = current ? `${current} ${word}` : word;
+      const next = joinWrapToken(current, word);
       if (ctx.measureText(next).width <= maxWidth || !current) {
+        current = next;
+      } else if (isClosingPunctuation(word)) {
         current = next;
       } else {
         lines.push(current);
@@ -183,6 +189,29 @@ function wrapText(text, maxWidth) {
   }
 
   return lines;
+}
+
+function tokenizeForWrap(text) {
+  if (!hasCjk(text)) return text.split(/\s+/g);
+  return Array.from(text).filter((char) => char !== "\n");
+}
+
+function joinWrapToken(current, token) {
+  if (!current) return token;
+  if (!hasCjk(current + token)) return `${current} ${token}`;
+  return token === " " || current.endsWith(" ") ? `${current}${token}` : `${current}${token}`;
+}
+
+function hasCjk(text) {
+  return /[\u3400-\u9fff\uf900-\ufaff]/.test(text);
+}
+
+function isClosingPunctuation(token) {
+  return /^[。！？；：，、）】》」』”’.,!?;:%)]$/.test(token);
+}
+
+function displayFontFor(text) {
+  return hasCjk(text) ? CJK_DISPLAY_FONT : LATIN_DISPLAY_FONT;
 }
 
 function drawMainText(text) {
@@ -199,7 +228,7 @@ function drawMainText(text) {
   const fit = fitFontSize(text, maxWidth, maxHeight, start, min, lineHeightRatio);
   ctx.fillStyle = "#fffdf7";
   ctx.textBaseline = "top";
-  ctx.font = `900 ${fit.fontSize}px Georgia, "Times New Roman", serif`;
+  ctx.font = `900 ${fit.fontSize}px ${fit.fontFamily}`;
 
   const lineHeight = fit.fontSize * lineHeightRatio;
   fit.lines.forEach((line, index) => {

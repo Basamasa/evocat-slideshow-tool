@@ -1,3 +1,12 @@
+@font-face {
+  font-family: "Noto Serif SC";
+  font-style: normal;
+  font-weight: 900;
+  src:
+    url("./node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-900-normal.woff2") format("woff2"),
+    url("./node_modules/@fontsource/noto-serif-sc/files/noto-serif-sc-chinese-simplified-900-normal.woff") format("woff");
+}
+
 :root {
   color-scheme: dark;
   --paper: #f3f0e8;
