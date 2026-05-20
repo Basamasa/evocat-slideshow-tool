@@ -22,6 +22,7 @@ npm run render -- --input examples/slides.json --out daily_posts/2026-05-18-scre
 ```
 
 The CLI writes PNG images directly to the output folder. The ZIP contains only PNG images.
+The CLI uses `@resvg/resvg-js` and loads the bundled Chinese font directly, so it does not need Chrome, screenshots, `sharp`, or `librsvg`.
 
 ## Workflow
 
@@ -37,7 +38,7 @@ The slide text box accepts:
 - numbered AI output like `1. First slide`
 - JSON arrays like `["Slide one", "Slide two"]`
 
-Chinese text is supported with a bundled font in `assets/fonts/`. See `examples/chinese-slides.txt`.
+Chinese text is supported with a bundled font in `assets/fonts/`. See `examples/chinese-slides.txt`. After pulling changes, run `npm install` so the local agent has the renderer dependency.
 
 The default export is `2048 x 2048`.
 

@@ -2,7 +2,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
-import sharp from "sharp";
+import { Resvg } from "@resvg/resvg-js";
 
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const DEFAULT_ICON = path.join(ROOT, "assets", "ironcat-app-icon.png");
@@ -36,7 +36,7 @@ await fs.mkdir(outDir, { recursive: true });
 const iconData = await fs.readFile(path.resolve(args.icon || DEFAULT_ICON));
 const iconBase64 = iconData.toString("base64");
 const usesCjk = slides.some(hasCjk);
-const cjkFontBase64 = usesCjk ? await readRequiredBase64(CJK_FONT_PATH) : "";
+const fontBuffers = usesCjk ? [await readRequiredFontBuffer(CJK_FONT_PATH)] : [];
 const written = [];
 
 for (let index = 0; index < slides.length; index += 1) {
@@ -46,10 +46,9 @@ for (let index = 0; index < slides.length; index += 1) {
     text: slides[index],
     brand,
     iconBase64,
-    cjkFontBase64,
     size,
   });
-  await sharp(Buffer.from(svg)).png().toFile(output);
+  await renderPng(svg, output, fontBuffers);
   written.push(output);
 }
 
@@ -117,9 +116,9 @@ async function readSlides(inputPath) {
     .filter(Boolean);
 }
 
-async function readRequiredBase64(filePath) {
+async function readRequiredFontBuffer(filePath) {
   try {
-    return (await fs.readFile(filePath)).toString("base64");
+    return await fs.readFile(filePath);
   } catch (error) {
     throw new Error(
       `Chinese text detected, but the bundled CJK font is missing at ${filePath}. Pull the latest repo and rerun.`
@@ -127,20 +126,27 @@ async function readRequiredBase64(filePath) {
   }
 }
 
-function renderSvg({ text, brand, iconBase64, cjkFontBase64, size }) {
+async function renderPng(svg, output, fontBuffers) {
+  const resvg = new Resvg(svg, {
+    font: {
+      fontBuffers,
+      loadSystemFonts: true,
+    },
+  });
+  const pngData = resvg.render();
+  await fs.writeFile(output, pngData.asPng());
+}
+
+function renderSvg({ text, brand, iconBase64, size }) {
   const scale = size / 2048;
   const s = (value) => value * scale;
   const main = fitText(text, s(1240), s(650), s(134), s(66), 1.34);
   const dots = renderDots(size, scale);
   const fontFamily = displayFontFor(text);
-  const fontFace = cjkFontBase64
-    ? `@font-face{font-family:'Noto Serif SC';font-style:normal;font-weight:900;src:url(data:font/woff2;base64,${cjkFontBase64}) format('woff2');}`
-    : "";
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
   <defs>
-    <style>${fontFace}</style>
     <radialGradient id="bgGlow" cx="35%" cy="53%" r="48%">
       <stop offset="0%" stop-color="#ffffff" stop-opacity="0.045"/>
       <stop offset="36%" stop-color="#ffffff" stop-opacity="0.018"/>

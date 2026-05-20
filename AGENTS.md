@@ -93,7 +93,7 @@ Slide three text
 
 Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default. Use line breaks inside a slide when the slide has a headline and supporting line.
 
-Chinese slide text is supported. The CLI renderer uses the bundled Noto Serif SC font in `assets/fonts/` and wraps Chinese text by character instead of relying on spaces. Use `examples/chinese-slides.txt` as a reference. If Chinese renders as boxed Unicode codes, pull the latest repo and verify the font file exists before posting.
+Chinese slide text is supported. The CLI renderer uses `@resvg/resvg-js`, loads the bundled Noto Serif SC font from `assets/fonts/`, and wraps Chinese text by character instead of relying on spaces. Use `examples/chinese-slides.txt` as a reference. Do not render agent slides with screenshots, `sharp`, `librsvg`, ImageMagick, or another SVG converter. If Chinese renders as boxed Unicode codes, pull the latest repo, run `npm install`, and verify the font file exists before posting.
 
 ## Output Convention
 
@@ -121,18 +121,17 @@ npm run render -- --input daily_posts/YYYY-MM-DD-topic-slug/slides.txt --out dai
 When `Export ZIP` is clicked in the browser, or `--zip` is passed to the CLI, the browser/CLI creates a package named like:
 
 ```text
-YYYY-MM-DD-topic-slug.zip
+images.zip
 ```
 
 Inside the ZIP:
 
 ```text
-YYYY-MM-DD-topic-slug/
-  evocat-slide-01.png
-  evocat-slide-02.png
+evocat-slide-01.png
+evocat-slide-02.png
 ```
 
-Do not put text, JSON, README files, metadata files, or source files into the export ZIP.
+Do not put folders, text, JSON, README files, metadata files, or source files into the export ZIP. The ZIP should contain image files only.
 
 If an agent needs to save reusable draft text outside a daily run, use `content/` and name files with the date:
 
