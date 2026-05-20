@@ -93,7 +93,7 @@ Slide three text
 
 Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default. Use line breaks inside a slide when the slide has a headline and supporting line.
 
-Chinese slide text is supported. The CLI renderer uses `@resvg/resvg-js`, loads the bundled Noto Serif SC font from `assets/fonts/`, and wraps Chinese text by character instead of relying on spaces. Use `examples/chinese-slides.txt` as a reference. Do not render agent slides with screenshots, `sharp`, `librsvg`, ImageMagick, or another SVG converter. If Chinese renders as boxed Unicode codes, pull the latest repo, run `npm install`, and verify the font file exists before posting.
+Chinese slide text is supported. The CLI renderer uses `@resvg/resvg-js`, reads the bundled Noto Serif SC font from `assets/fonts/`, converts Chinese slide-body glyphs into SVG paths, and wraps Chinese text by character instead of relying on spaces. Use `examples/chinese-slides.txt` as a reference. Do not render agent slides with screenshots, `canvas`, `node-canvas`, Pango, Cairo, `sharp`, `librsvg`, ImageMagick, or another SVG converter. If Chinese renders as blank text or boxed Unicode codes, you are almost certainly running stale code or the wrong command; pull the latest repo, run `npm install`, and run `npm run render`.
 
 ## Output Convention
 

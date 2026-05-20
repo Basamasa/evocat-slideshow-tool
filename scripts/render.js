@@ -3,6 +3,7 @@ import fs from "node:fs/promises";
 import path from "node:path";
 import process from "node:process";
 import { Resvg } from "@resvg/resvg-js";
+import * as fontkit from "fontkit";
 
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const DEFAULT_ICON = path.join(ROOT, "assets", "ironcat-app-icon.png");
@@ -36,7 +37,7 @@ await fs.mkdir(outDir, { recursive: true });
 const iconData = await fs.readFile(path.resolve(args.icon || DEFAULT_ICON));
 const iconBase64 = iconData.toString("base64");
 const usesCjk = slides.some(hasCjk);
-const fontBuffers = usesCjk ? [await readRequiredFontBuffer(CJK_FONT_PATH)] : [];
+const cjkFont = usesCjk ? await readRequiredFont(CJK_FONT_PATH) : null;
 const written = [];
 
 for (let index = 0; index < slides.length; index += 1) {
@@ -46,9 +47,10 @@ for (let index = 0; index < slides.length; index += 1) {
     text: slides[index],
     brand,
     iconBase64,
+    cjkFont,
     size,
   });
-  await renderPng(svg, output, fontBuffers);
+  await renderPng(svg, output);
   written.push(output);
 }
 
@@ -66,6 +68,7 @@ if (zipPath) {
 }
 
 console.log(`Rendered ${written.length} slides`);
+console.log(`Renderer: ${usesCjk ? "resvg + vectorized CJK text paths" : "resvg"}`);
 console.log(`Images: ${outDir}`);
 if (zipPath) console.log(`ZIP: ${zipPath}`);
 
@@ -116,20 +119,19 @@ async function readSlides(inputPath) {
     .filter(Boolean);
 }
 
-async function readRequiredFontBuffer(filePath) {
+async function readRequiredFont(filePath) {
   try {
-    return await fs.readFile(filePath);
+    return fontkit.create(await fs.readFile(filePath));
   } catch (error) {
     throw new Error(
-      `Chinese text detected, but the bundled CJK font is missing at ${filePath}. Pull the latest repo and rerun.`
+      `Chinese text detected, but the bundled CJK font could not be loaded at ${filePath}. Pull the latest repo, run npm install, and rerun.`
     );
   }
 }
 
-async function renderPng(svg, output, fontBuffers) {
+async function renderPng(svg, output) {
   const resvg = new Resvg(svg, {
     font: {
-      fontBuffers,
       loadSystemFonts: true,
     },
   });
@@ -137,12 +139,29 @@ async function renderPng(svg, output, fontBuffers) {
   await fs.writeFile(output, pngData.asPng());
 }
 
-function renderSvg({ text, brand, iconBase64, size }) {
+function renderSvg({ text, brand, iconBase64, cjkFont, size }) {
   const scale = size / 2048;
   const s = (value) => value * scale;
   const main = fitText(text, s(1240), s(650), s(134), s(66), 1.34);
   const dots = renderDots(size, scale);
   const fontFamily = displayFontFor(text);
+  const mainText = hasCjk(text)
+    ? renderTextPaths({
+        lines: main.lines,
+        font: cjkFont,
+        fontSize: main.fontSize,
+        lineHeight: main.lineHeight,
+        x: s(344),
+        y: s(570),
+      })
+    : renderTextElement({
+        lines: main.lines,
+        fontFamily,
+        fontSize: main.fontSize,
+        lineHeight: main.lineHeight,
+        x: s(344),
+        y: s(570),
+      });
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
@@ -169,11 +188,7 @@ function renderSvg({ text, brand, iconBase64, size }) {
   <rect x="${s(210)}" y="${s(318)}" width="${s(1628)}" height="${s(1438)}" rx="${s(150)}"
     fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="${s(1.2)}"/>
 
-  <text x="${s(344)}" y="${s(570)}" fill="#fffdf7"
-    font-family="${fontFamily}" font-weight="900"
-    font-size="${main.fontSize}" dominant-baseline="text-before-edge">
-    ${main.lines.map((line, index) => `<tspan x="${s(344)}" dy="${index === 0 ? 0 : main.lineHeight}">${escapeXml(line)}</tspan>`).join("")}
-  </text>
+  ${mainText}
 
   <text x="${s(344)}" y="${s(1368)}" fill="#fffdf7"
     font-family="Georgia, 'Times New Roman', serif" font-weight="900"
@@ -185,6 +200,52 @@ function renderSvg({ text, brand, iconBase64, size }) {
   <image x="${s(1185)}" y="${s(1216)}" width="${s(470)}" height="${s(470)}"
     opacity="0.9" filter="url(#iconGlow)" href="data:image/png;base64,${iconBase64}"/>
 </svg>`;
+}
+
+function renderTextElement({ lines, fontFamily, fontSize, lineHeight, x, y }) {
+  return `<text x="${x}" y="${y}" fill="#fffdf7"
+    font-family="${fontFamily}" font-weight="900"
+    font-size="${fontSize}" dominant-baseline="text-before-edge">
+    ${lines.map((line, index) => `<tspan x="${x}" dy="${index === 0 ? 0 : lineHeight}">${escapeXml(line)}</tspan>`).join("")}
+  </text>`;
+}
+
+function renderTextPaths({ lines, font, fontSize, lineHeight, x, y }) {
+  if (!font) throw new Error("Chinese text detected, but the CJK font was not loaded.");
+
+  const fontScale = fontSize / font.unitsPerEm;
+  const renderedLines = lines.map((line, index) => {
+    const run = font.layout(line);
+    const glyphs = [];
+    let cursor = 0;
+    let lineMaxY = 0;
+
+    for (let i = 0; i < run.glyphs.length; i += 1) {
+      const glyph = run.glyphs[i];
+      const position = run.positions[i];
+      const glyphPath = glyph.path;
+      if (glyphPath?.bbox) lineMaxY = Math.max(lineMaxY, glyphPath.bbox.maxY + position.yOffset);
+      glyphs.push({
+        path: glyphPath?.toSVG() || "",
+        x: cursor + position.xOffset,
+        y: position.yOffset,
+      });
+      cursor += position.xAdvance;
+    }
+
+    const baseline = y + index * lineHeight + lineMaxY * fontScale;
+    const paths = glyphs
+      .filter((glyph) => glyph.path)
+      .map(
+        (glyph) =>
+          `<path d="${glyph.path}" transform="translate(${round(glyph.x)} ${round(glyph.y)})"/>`
+      )
+      .join("");
+
+    return `<g transform="translate(${round(x)} ${round(baseline)}) scale(${round(fontScale)} ${round(-fontScale)})">${paths}</g>`;
+  });
+
+  return `<g fill="#fffdf7">${renderedLines.join("")}</g>`;
 }
 
 function fitText(text, maxWidth, maxHeight, startSize, minSize, lineHeightRatio) {
@@ -288,6 +349,10 @@ function escapeXml(value) {
     .replace(/</g, "&lt;")
     .replace(/>/g, "&gt;")
     .replace(/"/g, "&quot;");
+}
+
+function round(value) {
+  return Number(value.toFixed(4));
 }
 
 function today() {
