@@ -193,13 +193,14 @@ function wrapText(text, maxWidth) {
 
 function tokenizeForWrap(text) {
   if (!hasCjk(text)) return text.split(/\s+/g);
-  return Array.from(text).filter((char) => char !== "\n");
+  return text.match(/[\u3400-\u9fff\uf900-\ufaff]|[A-Za-z0-9]+(?:[.'-][A-Za-z0-9]+)*|\s+|./g) || [];
 }
 
 function joinWrapToken(current, token) {
   if (!current) return token;
   if (!hasCjk(current + token)) return `${current} ${token}`;
-  return token === " " || current.endsWith(" ") ? `${current}${token}` : `${current}${token}`;
+  if (/^\s+$/.test(token)) return `${current} `;
+  return `${current}${token}`;
 }
 
 function hasCjk(text) {
