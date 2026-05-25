@@ -37,7 +37,8 @@ await fs.mkdir(outDir, { recursive: true });
 const iconData = await fs.readFile(path.resolve(args.icon || DEFAULT_ICON));
 const iconBase64 = iconData.toString("base64");
 const usesCjk = slides.some(hasCjk);
-const cjkFont = usesCjk ? await readRequiredFont(CJK_FONT_PATH) : null;
+const usesScreenTime = slides.some(parseScreenTimeSlide);
+const cjkFont = usesCjk || usesScreenTime ? await readRequiredFont(CJK_FONT_PATH) : null;
 const written = [];
 
 for (let index = 0; index < slides.length; index += 1) {
@@ -68,7 +69,7 @@ if (zipPath) {
 }
 
 console.log(`Rendered ${written.length} slides`);
-console.log(`Renderer: ${usesCjk ? "resvg + vectorized CJK text paths" : "resvg"}`);
+console.log(`Renderer: ${usesCjk || usesScreenTime ? "resvg + vectorized text paths" : "resvg"}`);
 console.log(`Images: ${outDir}`);
 if (zipPath) console.log(`ZIP: ${zipPath}`);
 
@@ -141,7 +142,7 @@ async function renderPng(svg, output) {
 
 function renderSvg({ text, brand, iconBase64, cjkFont, size }) {
   const screenTime = parseScreenTimeSlide(text);
-  if (screenTime) return renderScreenTimeSvg({ spec: screenTime, size });
+  if (screenTime) return renderScreenTimeSvg({ spec: screenTime, font: cjkFont, size });
 
   const scale = size / 2048;
   const s = (value) => value * scale;
@@ -264,7 +265,7 @@ function parseScreenTimeSlide(value) {
   return spec;
 }
 
-function renderScreenTimeSvg({ spec, size }) {
+function renderScreenTimeSvg({ spec, font, size }) {
   const scale = size / 2048;
   const s = (value) => round(value * scale);
   const x = s(116);
@@ -276,6 +277,7 @@ function renderScreenTimeSvg({ spec, size }) {
     y: s(464),
     w: s(1576),
     h: s(628),
+    font,
     scale,
   });
   const categories = renderScreenTimeCategoriesSvg({
@@ -283,12 +285,14 @@ function renderScreenTimeSvg({ spec, size }) {
     x,
     y: s(1233),
     w,
+    font,
     scale,
   });
   const trend = renderTrendBadgeSvg({
     spec,
     x: s(966),
     y: s(290),
+    font,
     scale,
   });
 
@@ -304,27 +308,19 @@ function renderScreenTimeSvg({ spec, size }) {
   <rect width="${size}" height="${size}" fill="#17161a"/>
   <rect width="${size}" height="${size}" fill="url(#screenGlow)"/>
 
-  <text x="${x}" y="${s(160)}" fill="#aaa8b0"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="500" font-size="${s(83)}">Last Week's Average</text>
-  <text x="${x}" y="${s(370)}" fill="#fbfbff"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="300" font-size="${s(176)}">${escapeXml(spec.average)}</text>
+  ${renderSingleLineTextPath({ text: "Last Week's Average", font, fontSize: s(83), x, y: s(160), fill: "#aaa8b0" })}
+  ${renderSingleLineTextPath({ text: spec.average, font, fontSize: s(176), x, y: s(370), fill: "#fbfbff" })}
   ${trend}
   ${chart}
   ${categories}
   <line x1="${x}" y1="${s(1488)}" x2="${s(1932)}" y2="${s(1488)}"
     stroke="#ffffff" stroke-opacity="0.13" stroke-width="${s(1.6)}"/>
-  <text x="${x}" y="${s(1648)}" fill="#f3f2f8"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="400" font-size="${s(72)}">Total Screen Time</text>
-  <text x="${s(1932)}" y="${s(1648)}" fill="#aaa8b0" text-anchor="end"
-    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-    font-weight="400" font-size="${s(72)}">${escapeXml(spec.total)}</text>
+  ${renderSingleLineTextPath({ text: "Total Screen Time", font, fontSize: s(72), x, y: s(1648), fill: "#f3f2f8" })}
+  ${renderSingleLineTextPath({ text: spec.total, font, fontSize: s(72), x: s(1932), y: s(1648), fill: "#aaa8b0", anchor: "end" })}
 </svg>`;
 }
 
-function renderTrendBadgeSvg({ spec, x, y, scale }) {
+function renderTrendBadgeSvg({ spec, x, y, font, scale }) {
   const s = (value) => round(value * scale);
   const arrow =
     spec.direction === "down"
@@ -333,13 +329,11 @@ function renderTrendBadgeSvg({ spec, x, y, scale }) {
   return `<g>
     <circle cx="${x + s(43)}" cy="${y}" r="${s(38)}" fill="#a7a5ad"/>
     ${arrow}
-    <text x="${x + s(100)}" y="${y + s(27)}" fill="#aaa8b0"
-      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-      font-weight="400" font-size="${s(74)}">${escapeXml(spec.change)} from last week</text>
+    ${renderSingleLineTextPath({ text: `${spec.change} from last week`, font, fontSize: s(74), x: x + s(100), y: y + s(27), fill: "#aaa8b0" })}
   </g>`;
 }
 
-function renderScreenTimeChartSvg({ spec, x, y, w, h, scale }) {
+function renderScreenTimeChartSvg({ spec, x, y, w, h, font, scale }) {
   const s = (value) => round(value * scale);
   const chartRight = x + w;
   const chartBottom = y + h;
@@ -377,9 +371,7 @@ function renderScreenTimeChartSvg({ spec, x, y, w, h, scale }) {
       index,
       scale,
     })}
-    <text x="${round(bx - s(12))}" y="${chartBottom + s(82)}" fill="#74717a"
-      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-      font-weight="500" font-size="${s(60)}">${labels[index]}</text>`;
+    ${renderSingleLineTextPath({ text: labels[index], font, fontSize: s(60), x: round(bx - s(12)), y: chartBottom + s(82), fill: "#74717a" })}`;
   });
 
   return `<g>
@@ -388,18 +380,10 @@ function renderScreenTimeChartSvg({ spec, x, y, w, h, scale }) {
     <line x1="${x}" y1="${round(avgY)}" x2="${chartRight}" y2="${round(avgY)}"
       stroke="#6ade82" stroke-width="${s(6)}" stroke-dasharray="${s(14)} ${s(24)}"/>
     ${bars.join("")}
-    <text x="${chartRight + s(24)}" y="${y + s(22)}" fill="#74717a"
-      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-      font-weight="400" font-size="${s(64)}">14h</text>
-    <text x="${chartRight + s(24)}" y="${y + h * 0.52}" fill="#74717a"
-      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-      font-weight="400" font-size="${s(64)}">7h</text>
-    <text x="${chartRight + s(24)}" y="${chartBottom + s(20)}" fill="#74717a"
-      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-      font-weight="400" font-size="${s(64)}">0</text>
-    <text x="${chartRight + s(24)}" y="${round(avgY + s(22))}" fill="#6ade82"
-      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-      font-weight="400" font-size="${s(64)}">avg</text>
+    ${renderSingleLineTextPath({ text: "14h", font, fontSize: s(64), x: chartRight + s(24), y: y + s(22), fill: "#74717a" })}
+    ${renderSingleLineTextPath({ text: "7h", font, fontSize: s(64), x: chartRight + s(24), y: y + h * 0.52, fill: "#74717a" })}
+    ${renderSingleLineTextPath({ text: "0", font, fontSize: s(64), x: chartRight + s(24), y: chartBottom + s(20), fill: "#74717a" })}
+    ${renderSingleLineTextPath({ text: "avg", font, fontSize: s(64), x: chartRight + s(24), y: round(avgY + s(22)), fill: "#6ade82" })}
   </g>`;
 }
 
@@ -429,7 +413,7 @@ function renderStackedBarSvg({ x, y, w, h, index, scale }) {
   </g>`;
 }
 
-function renderScreenTimeCategoriesSvg({ categories, x, y, w, scale }) {
+function renderScreenTimeCategoriesSvg({ categories, x, y, w, font, scale }) {
   const s = (value) => round(value * scale);
   const col = w / 3;
   return categories
@@ -437,15 +421,36 @@ function renderScreenTimeCategoriesSvg({ categories, x, y, w, scale }) {
     .map((category, index) => {
       const cx = x + col * index;
       return `<g>
-        <text x="${round(cx)}" y="${y}" fill="${category.color}"
-          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-          font-weight="400" font-size="${s(62)}">${escapeXml(category.name)}</text>
-        <text x="${round(cx)}" y="${y + s(112)}" fill="#fbfbff"
-          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
-          font-weight="400" font-size="${s(72)}">${escapeXml(category.value)}</text>
+        ${renderSingleLineTextPath({ text: category.name, font, fontSize: s(62), x: round(cx), y, fill: category.color })}
+        ${renderSingleLineTextPath({ text: category.value, font, fontSize: s(72), x: round(cx), y: y + s(112), fill: "#fbfbff" })}
       </g>`;
     })
     .join("");
+}
+
+function renderSingleLineTextPath({ text, font, fontSize, x, y, fill, anchor = "start" }) {
+  if (!font) throw new Error("Screen Time text requires the bundled font to be loaded.");
+
+  const fontScale = fontSize / font.unitsPerEm;
+  const run = font.layout(String(text));
+  const width = run.positions.reduce((sum, position) => sum + position.xAdvance, 0) * fontScale;
+  const startX = anchor === "end" ? x - width : x;
+  const paths = [];
+  let cursor = 0;
+
+  for (let i = 0; i < run.glyphs.length; i += 1) {
+    const glyph = run.glyphs[i];
+    const position = run.positions[i];
+    const glyphPath = glyph.path?.toSVG();
+    if (glyphPath) {
+      paths.push(
+        `<path d="${glyphPath}" transform="translate(${round(cursor + position.xOffset)} ${round(position.yOffset)})"/>`
+      );
+    }
+    cursor += position.xAdvance;
+  }
+
+  return `<g fill="${fill}" transform="translate(${round(startX)} ${round(y)}) scale(${round(fontScale)} ${round(-fontScale)})">${paths.join("")}</g>`;
 }
 
 function renderTextElement({ lines, fontFamily, fontSize, lineHeight, x, y }) {
