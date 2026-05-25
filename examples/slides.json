@@ -1,9 +1,10 @@
 [
-  "Your Screen Time is high. Now what?",
+  "Your Phone Is Training You To Lose Focus",
   "Check your top app first\nThat is where the spiral usually starts.",
-  "Don't fix the whole phone\nPick the app you reopen automatically.",
+  "[screen-time]\naverage: 10h 39m\nchange: 11%\ndirection: up\ntotal: 74h 38m\ndays: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m\ncategories:\nSocial: 62h 12m\nEntertainment: 5h 25m\nShopping & Food: 2h 58m\n[/screen-time]",
   "Protect your worst time\nBedtime, mornings, work, or study.",
   "Start with one clean hour\nNot a perfect day.",
+  "Don't fix the whole phone\nPick the app you reopen automatically.",
   "Move the app out of reach\nLess visible means less automatic.",
   "The goal is not zero phone use\nThe goal is fewer automatic openings.",
   "If you keep going back to the same app\nTry EvoCat on the App Store."

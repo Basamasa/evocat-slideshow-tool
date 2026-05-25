@@ -140,6 +140,9 @@ async function renderPng(svg, output) {
 }
 
 function renderSvg({ text, brand, iconBase64, cjkFont, size }) {
+  const screenTime = parseScreenTimeSlide(text);
+  if (screenTime) return renderScreenTimeSvg({ spec: screenTime, size });
+
   const scale = size / 2048;
   const s = (value) => value * scale;
   const main = fitText(text, s(1240), s(650), s(134), s(66), 1.34);
@@ -200,6 +203,249 @@ function renderSvg({ text, brand, iconBase64, cjkFont, size }) {
   <image x="${s(1185)}" y="${s(1216)}" width="${s(470)}" height="${s(470)}"
     opacity="0.9" filter="url(#iconGlow)" href="data:image/png;base64,${iconBase64}"/>
 </svg>`;
+}
+
+function parseScreenTimeSlide(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^\[screen-time\]([\s\S]*?)(?:\[\/screen-time\])?$/i);
+  if (!match) return null;
+
+  const spec = {
+    average: "10h 39m",
+    change: "11%",
+    direction: "up",
+    total: "74h 38m",
+    days: ["10h 5m", "12h 10m", "11h 20m", "7h 48m", "7h 42m", "8h 18m", "9h 4m"],
+    categories: [
+      { name: "Social", value: "62h 12m", color: "#168df4" },
+      { name: "Entertainment", value: "5h 25m", color: "#55c8d9" },
+      { name: "Shopping & Food", value: "2h 58m", color: "#f4a742" },
+    ],
+  };
+
+  const colorByName = {
+    social: "#168df4",
+    entertainment: "#55c8d9",
+    "shopping & food": "#f4a742",
+    productivity: "#78d26d",
+    games: "#b48cf6",
+    other: "#6d6b74",
+  };
+
+  let readingCategories = false;
+  const categories = [];
+  for (const rawLine of match[1].split(/\n/g)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (/^categories\s*:/i.test(line)) {
+      readingCategories = true;
+      continue;
+    }
+    const pair = line.match(/^([^:]+):\s*(.+)$/);
+    if (!pair) continue;
+    const key = pair[1].trim();
+    const val = pair[2].trim();
+    if (readingCategories) {
+      categories.push({
+        name: key,
+        value: val,
+        color: colorByName[key.toLowerCase()] || colorByName.other,
+      });
+      continue;
+    }
+    if (/^average$/i.test(key)) spec.average = val;
+    if (/^change$/i.test(key)) spec.change = val;
+    if (/^direction$/i.test(key)) spec.direction = val.toLowerCase();
+    if (/^total$/i.test(key)) spec.total = val;
+    if (/^days$/i.test(key)) spec.days = val.split(/\s*,\s*/g).filter(Boolean);
+  }
+
+  if (categories.length) spec.categories = categories.slice(0, 3);
+  return spec;
+}
+
+function renderScreenTimeSvg({ spec, size }) {
+  const scale = size / 2048;
+  const s = (value) => round(value * scale);
+  const x = s(116);
+  const y = s(78);
+  const w = s(1816);
+  const chart = renderScreenTimeChartSvg({
+    spec,
+    x,
+    y: s(464),
+    w: s(1576),
+    h: s(628),
+    scale,
+  });
+  const categories = renderScreenTimeCategoriesSvg({
+    categories: spec.categories,
+    x,
+    y: s(1233),
+    w,
+    scale,
+  });
+  const trend = renderTrendBadgeSvg({
+    spec,
+    x: s(966),
+    y: s(290),
+    scale,
+  });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  <defs>
+    <linearGradient id="screenGlow" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.035"/>
+      <stop offset="48%" stop-color="#ffffff" stop-opacity="0.01"/>
+      <stop offset="100%" stop-color="#000000" stop-opacity="0.24"/>
+    </linearGradient>
+  </defs>
+  <rect width="${size}" height="${size}" fill="#17161a"/>
+  <rect width="${size}" height="${size}" fill="url(#screenGlow)"/>
+
+  <text x="${x}" y="${s(160)}" fill="#aaa8b0"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="500" font-size="${s(83)}">Last Week's Average</text>
+  <text x="${x}" y="${s(370)}" fill="#fbfbff"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="300" font-size="${s(176)}">${escapeXml(spec.average)}</text>
+  ${trend}
+  ${chart}
+  ${categories}
+  <line x1="${x}" y1="${s(1488)}" x2="${s(1932)}" y2="${s(1488)}"
+    stroke="#ffffff" stroke-opacity="0.13" stroke-width="${s(1.6)}"/>
+  <text x="${x}" y="${s(1648)}" fill="#f3f2f8"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="400" font-size="${s(72)}">Total Screen Time</text>
+  <text x="${s(1932)}" y="${s(1648)}" fill="#aaa8b0" text-anchor="end"
+    font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+    font-weight="400" font-size="${s(72)}">${escapeXml(spec.total)}</text>
+</svg>`;
+}
+
+function renderTrendBadgeSvg({ spec, x, y, scale }) {
+  const s = (value) => round(value * scale);
+  const arrow =
+    spec.direction === "down"
+      ? `<path d="M ${x + s(43)} ${y - s(17)} L ${x + s(43)} ${y + s(17)} M ${x + s(22)} ${y} L ${x + s(43)} ${y + s(22)} L ${x + s(64)} ${y}" fill="none" stroke="#17161a" stroke-width="${s(9)}" stroke-linecap="round" stroke-linejoin="round"/>`
+      : `<path d="M ${x + s(43)} ${y + s(17)} L ${x + s(43)} ${y - s(17)} M ${x + s(22)} ${y} L ${x + s(43)} ${y - s(22)} L ${x + s(64)} ${y}" fill="none" stroke="#17161a" stroke-width="${s(9)}" stroke-linecap="round" stroke-linejoin="round"/>`;
+  return `<g>
+    <circle cx="${x + s(43)}" cy="${y}" r="${s(38)}" fill="#a7a5ad"/>
+    ${arrow}
+    <text x="${x + s(100)}" y="${y + s(27)}" fill="#aaa8b0"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="400" font-size="${s(74)}">${escapeXml(spec.change)} from last week</text>
+  </g>`;
+}
+
+function renderScreenTimeChartSvg({ spec, x, y, w, h, scale }) {
+  const s = (value) => round(value * scale);
+  const chartRight = x + w;
+  const chartBottom = y + h;
+  const labels = ["S", "M", "T", "W", "T", "F", "S"];
+  const dayValues = spec.days.map(parseDurationToHours);
+  while (dayValues.length < 7) dayValues.push(dayValues[dayValues.length - 1] || 8);
+  const maxHours = Math.max(14, ...dayValues, parseDurationToHours(spec.average) + 2);
+  const avgHours = parseDurationToHours(spec.average);
+  const slot = w / 7;
+  const barW = Math.min(s(125), slot - s(66));
+  const avgY = chartBottom - (avgHours / maxHours) * h;
+
+  const horizontal = [];
+  for (let i = 0; i <= 4; i += 1) {
+    const gy = y + (h * i) / 4;
+    horizontal.push(`<line x1="${x}" y1="${round(gy)}" x2="${chartRight}" y2="${round(gy)}"/>`);
+  }
+
+  const vertical = [];
+  for (let i = 0; i <= 7; i += 1) {
+    const gx = x + slot * i;
+    vertical.push(`<line x1="${round(gx)}" y1="${y}" x2="${round(gx)}" y2="${chartBottom + s(114)}"/>`);
+  }
+
+  const bars = spec.days.slice(0, 7).map((day, index) => {
+    const hours = parseDurationToHours(day);
+    const barH = Math.max(s(74), (hours / maxHours) * h);
+    const bx = x + slot * index + (slot - barW) / 2;
+    const by = chartBottom - barH;
+    return `${renderStackedBarSvg({
+      x: round(bx),
+      y: round(by),
+      w: round(barW),
+      h: round(barH),
+      index,
+      scale,
+    })}
+    <text x="${round(bx - s(12))}" y="${chartBottom + s(82)}" fill="#74717a"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="500" font-size="${s(60)}">${labels[index]}</text>`;
+  });
+
+  return `<g>
+    <g stroke="#ffffff" stroke-opacity="0.18" stroke-width="${s(1.3)}">${horizontal.join("")}</g>
+    <g stroke="#ffffff" stroke-opacity="0.18" stroke-width="${s(1.3)}" stroke-dasharray="${s(14)} ${s(13)}">${vertical.join("")}</g>
+    <line x1="${x}" y1="${round(avgY)}" x2="${chartRight}" y2="${round(avgY)}"
+      stroke="#6ade82" stroke-width="${s(6)}" stroke-dasharray="${s(14)} ${s(24)}"/>
+    ${bars.join("")}
+    <text x="${chartRight + s(24)}" y="${y + s(22)}" fill="#74717a"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="400" font-size="${s(64)}">14h</text>
+    <text x="${chartRight + s(24)}" y="${y + h * 0.52}" fill="#74717a"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="400" font-size="${s(64)}">7h</text>
+    <text x="${chartRight + s(24)}" y="${chartBottom + s(20)}" fill="#74717a"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="400" font-size="${s(64)}">0</text>
+    <text x="${chartRight + s(24)}" y="${round(avgY + s(22))}" fill="#6ade82"
+      font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+      font-weight="400" font-size="${s(64)}">avg</text>
+  </g>`;
+}
+
+function renderStackedBarSvg({ x, y, w, h, index, scale }) {
+  const s = (value) => round(value * scale);
+  const social = h * (0.75 + (index % 3) * 0.025);
+  const entertainment = h * (0.17 - (index % 2) * 0.025);
+  const shopping = h * 0.045;
+  const other = Math.max(s(12), h - social - entertainment - shopping);
+  const clipId = `barClip${index}`;
+  let cy = y + h;
+  const socialY = cy - social;
+  cy -= social;
+  const entertainmentY = cy - entertainment;
+  cy -= entertainment;
+  const shoppingY = cy - shopping;
+  cy -= shopping;
+  const otherY = y;
+  return `<g>
+    <clipPath id="${clipId}"><rect x="${x}" y="${y}" width="${w}" height="${round(h)}" rx="${s(12)}"/></clipPath>
+    <g clip-path="url(#${clipId})">
+      <rect x="${x}" y="${round(socialY)}" width="${w}" height="${round(social)}" fill="#168df4"/>
+      <rect x="${x}" y="${round(entertainmentY)}" width="${w}" height="${round(entertainment)}" fill="#55c8d9"/>
+      <rect x="${x}" y="${round(shoppingY)}" width="${w}" height="${round(shopping)}" fill="#f4a742"/>
+      <rect x="${x}" y="${round(otherY)}" width="${w}" height="${round(other)}" fill="#434248"/>
+    </g>
+  </g>`;
+}
+
+function renderScreenTimeCategoriesSvg({ categories, x, y, w, scale }) {
+  const s = (value) => round(value * scale);
+  const col = w / 3;
+  return categories
+    .slice(0, 3)
+    .map((category, index) => {
+      const cx = x + col * index;
+      return `<g>
+        <text x="${round(cx)}" y="${y}" fill="${category.color}"
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+          font-weight="400" font-size="${s(62)}">${escapeXml(category.name)}</text>
+        <text x="${round(cx)}" y="${y + s(112)}" fill="#fbfbff"
+          font-family="-apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', Arial, sans-serif"
+          font-weight="400" font-size="${s(72)}">${escapeXml(category.value)}</text>
+      </g>`;
+    })
+    .join("");
 }
 
 function renderTextElement({ lines, fontFamily, fontSize, lineHeight, x, y }) {
@@ -277,6 +523,13 @@ function wrapText(text, maxWidth, fontSize) {
     if (current) lines.push(current);
   }
   return lines;
+}
+
+function parseDurationToHours(value) {
+  const text = String(value || "");
+  const hours = Number(text.match(/(\d+(?:\.\d+)?)\s*h/i)?.[1] || 0);
+  const minutes = Number(text.match(/(\d+(?:\.\d+)?)\s*m/i)?.[1] || 0);
+  return hours + minutes / 60;
 }
 
 function tokenizeForWrap(text) {

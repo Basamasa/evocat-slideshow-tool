@@ -16,36 +16,69 @@ Given a topic or campaign brief, create 8 short slide texts, save them in the da
 Use this winning slideshow format unless the user provides a different one:
 
 ```text
-Hook = self-diagnosis
-Middle = specific useful steps
+Hook = TikTok-fast direct pain
+Middle = specific useful steps or concrete visual proof
 Ending = friction / EvoCat soft CTA
 ```
 
-Create exactly 8 slides:
+Create exactly 8 slide positions. A position can be either a text slide or a visual Screen Time mockup slide. Preserve the meaningful flow even when a visual slide replaces normal text, usually by making the previous or next slide explain what the screenshot proves.
+
+For TikTok, first-slide text must hit in under 2 seconds. Use a very short hook first, then make later slides do the explaining.
+
+Deep-research note (date-specific): sources checked from Apr 24-May 24, 2026 showed limited fresh public data specifically on "brainrot/phone control" phrasing, so this guidance is based on TikTok Creative Center/ads docs and recent 2026 hook breakdowns/tests.
+
+What consistently works right now:
+
+1. Direct callout ("you")
+2. Specific pain/problem
+3. Contrarian claim
+4. Number/list promise
+5. Very short text (5-9 words ideal)
+
+Strong first-slide options for phone control / brainrot topics:
+
+```text
+Your Phone Is Training You To Lose Focus
+5 Signs Your Brain Is Cooked By Scrolling
+Your Screen Time Is A Personality Test
+This Is Why You Can't Focus Anymore
+Your Attention Span Is Being Sold
+7 Signs Your Phone Owns Your Day
+You're Not Lazy - You're Overstimulated
+If You Do This, You're Brainrotted
+Your Dopamine Is Not Yours Anymore
+Why 3 Hours On TikTok Feels Like 10 Minutes
+You're Rewarding The Wrong Brain Circuit
+Your Phone Is Designing Your Mood
+5 Brutal Signs Your Mind Is Addicted
+You're Not Resting, You're Numbing Out
+This Habit Is Quietly Killing Your Discipline
+```
+
+Recommended 8-position shape:
 
 ```text
 Slide 1
-[Painful self-diagnosis question]
+[5-9 word direct hook]
 
 Slide 2
-[The first thing to check]
+[Specific symptom or first check]
 [Very simple action]
 
 Slide 3
-[Find the biggest trigger]
-[Concrete check/action]
+[Optional Screen Time mockup slide, or concrete trigger check]
 
 Slide 4
+[Name the biggest trigger]
+[Concrete check/action]
+
+Slide 5
 [Protect one specific time]
 [Bedtime / morning / work / study]
 
-Slide 5
+Slide 6
 [Make the first win small]
 [One hour / one app / one time block]
-
-Slide 6
-[Explain the mistake people make]
-[Do this instead]
 
 Slide 7
 [Core principle]
@@ -62,6 +95,31 @@ The last slide should connect directly to the problem and should not feel like a
 If you keep going back to the same app
 Try EvoCat on the App Store.
 ```
+
+## Visual Screen Time Slides
+
+Agents can include a fake Apple-style Screen Time screenshot as one slide by using this blank-line-separated block in `slides.txt`. It renders as an image-only visual slide with no extra text overlay.
+
+```text
+[screen-time]
+average: 10h 39m
+change: 11%
+direction: up
+total: 74h 38m
+days: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m
+categories:
+Social: 62h 12m
+Entertainment: 5h 25m
+Shopping & Food: 2h 58m
+[/screen-time]
+```
+
+Rules for Screen Time mockups:
+
+- Use the mockup only when it strengthens the story, commonly at slide 2, 3, or 5.
+- Do not add caption text inside the same slide block. Let adjacent slides carry the meaning.
+- Use plausible fake numbers that match the problem being discussed.
+- Keep exactly 8 slide positions total.
 
 ## Input Format
 
@@ -92,6 +150,7 @@ Slide three text
 ```
 
 Keep each slide focused on one idea. Prefer 6 to 16 words per slide, unless the user asks for a different style. Use direct language, no hashtags, and no emoji by default. Use line breaks inside a slide when the slide has a headline and supporting line.
+For the first slide, prefer 5 to 9 words.
 
 Chinese slide text is supported. The CLI renderer uses `@resvg/resvg-js`, reads the bundled Noto Serif SC font from `assets/fonts/`, converts Chinese slide-body glyphs into SVG paths, and wraps Chinese text by character instead of relying on spaces. Use `examples/chinese-slides.txt` as a reference. Do not render agent slides with screenshots, `canvas`, `node-canvas`, Pango, Cairo, `sharp`, `librsvg`, ImageMagick, or another SVG converter. If Chinese renders as blank text or boxed Unicode codes, you are almost certainly running stale code or the wrong command; pull the latest repo, run `npm install`, and run `npm run render`.
 
@@ -144,7 +203,7 @@ This draft-file convention is provisional. The user said they will provide the f
 ## Suggested Agent Workflow
 
 1. Read `README.md`, this file, and any user-provided campaign format.
-2. Generate exactly 8 slides in the accepted input format.
+2. Generate exactly 8 slide positions in the accepted input format.
 3. Save the draft and exact slide text in `daily_posts/YYYY-MM-DD-topic-slug/`.
 4. Show the slide text to the user and wait for approval.
 5. After approval, render with `npm run render`.
@@ -158,6 +217,7 @@ This draft-file convention is provisional. The user said they will provide the f
 - `app.js`: slide renderer, parser, and ZIP exporter
 - `scripts/render.js`: browserless CLI renderer for agents
 - `assets/ironcat-app-icon.png`: mascot image used in slides
+- `examples/screen-time-slides.txt`: mixed text and Screen Time mockup input
 - `content/`: optional dated draft text created by agents
 - `examples/`: sample input formats
 

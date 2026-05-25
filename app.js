@@ -23,11 +23,11 @@ const els = {
 };
 
 let slides = [
-  "Your Screen Time is high. Now what?",
+  "Your Phone Is Training You To Lose Focus",
   "Check your top app first\nThat is where the spiral usually starts.",
+  "[screen-time]\naverage: 10h 39m\nchange: 11%\ntotal: 74h 38m\ndays: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m\ncategories:\nSocial: 62h 12m\nEntertainment: 5h 25m\nShopping & Food: 2h 58m\n[/screen-time]",
   "Don't fix the whole phone\nPick the app you reopen automatically.",
   "Protect your worst time\nBedtime, mornings, work, or study.",
-  "Start with one clean hour\nNot a perfect day.",
   "Move the app out of reach\nLess visible means less automatic.",
   "The goal is not zero phone use\nThe goal is fewer automatic openings.",
   "If you keep going back to the same app\nTry EvoCat on the App Store.",
@@ -253,13 +253,260 @@ function drawFooter() {
 
 function render() {
   setCanvasSize();
-  drawBackground();
-  drawCard();
-  drawMainText(slides[activeIndex] || "");
-  drawFooter();
-  drawIcon();
+  const slide = slides[activeIndex] || "";
+  const screenTime = parseScreenTimeSlide(slide);
+  if (screenTime) {
+    drawScreenTimeSlide(screenTime);
+  } else {
+    drawBackground();
+    drawCard();
+    drawMainText(slide);
+    drawFooter();
+    drawIcon();
+  }
   els.activeLabel.textContent = `Slide ${activeIndex + 1}`;
   renderSlideList();
+}
+
+function parseScreenTimeSlide(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^\[screen-time\]([\s\S]*?)(?:\[\/screen-time\])?$/i);
+  if (!match) return null;
+
+  const spec = {
+    average: "10h 39m",
+    change: "11%",
+    direction: "up",
+    total: "74h 38m",
+    days: ["10h 5m", "12h 10m", "11h 20m", "7h 48m", "7h 42m", "8h 18m", "9h 4m"],
+    categories: [
+      { name: "Social", value: "62h 12m", color: "#168df4" },
+      { name: "Entertainment", value: "5h 25m", color: "#55c8d9" },
+      { name: "Shopping & Food", value: "2h 58m", color: "#f4a742" },
+    ],
+  };
+
+  const colorByName = {
+    social: "#168df4",
+    entertainment: "#55c8d9",
+    "shopping & food": "#f4a742",
+    productivity: "#78d26d",
+    games: "#b48cf6",
+    other: "#6d6b74",
+  };
+
+  let readingCategories = false;
+  const categories = [];
+  for (const rawLine of match[1].split(/\n/g)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    if (/^categories\s*:/i.test(line)) {
+      readingCategories = true;
+      continue;
+    }
+    const pair = line.match(/^([^:]+):\s*(.+)$/);
+    if (!pair) continue;
+    const key = pair[1].trim();
+    const val = pair[2].trim();
+    if (readingCategories) {
+      categories.push({
+        name: key,
+        value: val,
+        color: colorByName[key.toLowerCase()] || colorByName.other,
+      });
+      continue;
+    }
+    if (/^average$/i.test(key)) spec.average = val;
+    if (/^change$/i.test(key)) spec.change = val;
+    if (/^direction$/i.test(key)) spec.direction = val.toLowerCase();
+    if (/^total$/i.test(key)) spec.total = val;
+    if (/^days$/i.test(key)) spec.days = val.split(/\s*,\s*/g).filter(Boolean);
+  }
+
+  if (categories.length) spec.categories = categories.slice(0, 3);
+  return spec;
+}
+
+function drawScreenTimeSlide(spec) {
+  const s = getScale();
+  ctx.fillStyle = "#17161a";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const glow = ctx.createLinearGradient(0, 0, 0, canvas.height);
+  glow.addColorStop(0, "rgba(255,255,255,0.035)");
+  glow.addColorStop(0.48, "rgba(255,255,255,0.01)");
+  glow.addColorStop(1, "rgba(0,0,0,0.24)");
+  ctx.fillStyle = glow;
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  const x = 116 * s;
+  const y = 78 * s;
+  const w = 1816 * s;
+  ctx.textBaseline = "alphabetic";
+  ctx.font = `500 ${83 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = "#aaa8b0";
+  ctx.fillText("Last Week's Average", x, y + 82 * s);
+
+  ctx.font = `300 ${176 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = "#fbfbff";
+  ctx.fillText(spec.average, x, y + 292 * s);
+
+  drawTrendBadge(spec, x + 850 * s, y + 212 * s);
+
+  drawScreenTimeChart(spec, x, y + 386 * s, w - 240 * s, 628 * s);
+  drawScreenTimeCategories(spec, x, y + 1155 * s, w);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.13)";
+  ctx.lineWidth = 1.6 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, y + 1410 * s);
+  ctx.lineTo(x + w, y + 1410 * s);
+  ctx.stroke();
+
+  ctx.font = `400 ${72 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = "#f3f2f8";
+  ctx.fillText("Total Screen Time", x, y + 1570 * s);
+  ctx.fillStyle = "#aaa8b0";
+  ctx.textAlign = "right";
+  ctx.fillText(spec.total, x + w, y + 1570 * s);
+  ctx.textAlign = "left";
+}
+
+function drawTrendBadge(spec, x, y) {
+  const s = getScale();
+  ctx.save();
+  ctx.fillStyle = "#a7a5ad";
+  ctx.beginPath();
+  ctx.arc(x + 43 * s, y, 38 * s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#17161a";
+  ctx.lineWidth = 9 * s;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  if (spec.direction === "down") {
+    ctx.moveTo(x + 43 * s, y - 17 * s);
+    ctx.lineTo(x + 43 * s, y + 17 * s);
+    ctx.moveTo(x + 22 * s, y);
+    ctx.lineTo(x + 43 * s, y + 22 * s);
+    ctx.lineTo(x + 64 * s, y);
+  } else {
+    ctx.moveTo(x + 43 * s, y + 17 * s);
+    ctx.lineTo(x + 43 * s, y - 17 * s);
+    ctx.moveTo(x + 22 * s, y);
+    ctx.lineTo(x + 43 * s, y - 22 * s);
+    ctx.lineTo(x + 64 * s, y);
+  }
+  ctx.stroke();
+  ctx.font = `400 ${74 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = "#aaa8b0";
+  ctx.fillText(`${spec.change} from last week`, x + 100 * s, y + 27 * s);
+  ctx.restore();
+}
+
+function drawScreenTimeChart(spec, x, y, w, h) {
+  const s = getScale();
+  const chartRight = x + w;
+  const chartBottom = y + h;
+  const labels = ["S", "M", "T", "W", "T", "F", "S"];
+  const dayValues = spec.days.map(parseDurationToHours);
+  while (dayValues.length < 7) dayValues.push(dayValues[dayValues.length - 1] || 8);
+  const maxHours = Math.max(14, ...dayValues, parseDurationToHours(spec.average) + 2);
+  const avgHours = parseDurationToHours(spec.average);
+  const barGap = 66 * s;
+  const slot = w / 7;
+  const barW = Math.min(125 * s, slot - barGap);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.18)";
+  ctx.lineWidth = 1.3 * s;
+  for (let i = 0; i <= 4; i += 1) {
+    const gy = y + (h * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(x, gy);
+    ctx.lineTo(chartRight, gy);
+    ctx.stroke();
+  }
+  ctx.setLineDash([14 * s, 13 * s]);
+  for (let i = 0; i <= 7; i += 1) {
+    const gx = x + slot * i;
+    ctx.beginPath();
+    ctx.moveTo(gx, y);
+    ctx.lineTo(gx, chartBottom + 114 * s);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+
+  const avgY = chartBottom - (avgHours / maxHours) * h;
+  ctx.strokeStyle = "#6ade82";
+  ctx.lineWidth = 6 * s;
+  ctx.setLineDash([14 * s, 24 * s]);
+  ctx.beginPath();
+  ctx.moveTo(x, avgY);
+  ctx.lineTo(chartRight, avgY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  spec.days.slice(0, 7).forEach((day, index) => {
+    const hours = parseDurationToHours(day);
+    const barH = Math.max(74 * s, (hours / maxHours) * h);
+    const bx = x + slot * index + (slot - barW) / 2;
+    const by = chartBottom - barH;
+    drawStackedBar(bx, by, barW, barH, index);
+    ctx.font = `500 ${60 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+    ctx.fillStyle = "#74717a";
+    ctx.fillText(labels[index], bx - 12 * s, chartBottom + 82 * s);
+  });
+
+  ctx.font = `400 ${64 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+  ctx.fillStyle = "#74717a";
+  ctx.fillText("14h", chartRight + 24 * s, y + 22 * s);
+  ctx.fillText("7h", chartRight + 24 * s, y + h * 0.52);
+  ctx.fillText("0", chartRight + 24 * s, chartBottom + 20 * s);
+  ctx.fillStyle = "#6ade82";
+  ctx.fillText("avg", chartRight + 24 * s, avgY + 22 * s);
+}
+
+function drawStackedBar(x, y, w, h, index) {
+  const s = getScale();
+  const cap = 12 * s;
+  const social = h * (0.75 + (index % 3) * 0.025);
+  const entertainment = h * (0.17 - (index % 2) * 0.025);
+  const shopping = h * 0.045;
+  const other = Math.max(12 * s, h - social - entertainment - shopping);
+  let cy = y + h;
+  ctx.fillStyle = "#168df4";
+  ctx.fillRect(x, cy - social, w, social);
+  cy -= social;
+  ctx.fillStyle = "#55c8d9";
+  ctx.fillRect(x, cy - entertainment, w, entertainment);
+  cy -= entertainment;
+  ctx.fillStyle = "#f4a742";
+  ctx.fillRect(x, cy - shopping, w, shopping);
+  cy -= shopping;
+  ctx.fillStyle = "#434248";
+  ctx.beginPath();
+  ctx.roundRect(x, y, w, other + cap, [cap, cap, 0, 0]);
+  ctx.fill();
+}
+
+function drawScreenTimeCategories(spec, x, y, w) {
+  const s = getScale();
+  const col = w / 3;
+  spec.categories.slice(0, 3).forEach((category, index) => {
+    const cx = x + col * index;
+    ctx.font = `400 ${62 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+    ctx.fillStyle = category.color;
+    ctx.fillText(category.name, cx, y);
+    ctx.font = `400 ${72 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif`;
+    ctx.fillStyle = "#fbfbff";
+    ctx.fillText(category.value, cx, y + 112 * s);
+  });
+}
+
+function parseDurationToHours(value) {
+  const text = String(value || "");
+  const hours = Number(text.match(/(\d+(?:\.\d+)?)\s*h/i)?.[1] || 0);
+  const minutes = Number(text.match(/(\d+(?:\.\d+)?)\s*m/i)?.[1] || 0);
+  return hours + minutes / 60;
 }
 
 function renderSlideList() {
@@ -268,7 +515,9 @@ function renderSlideList() {
     const button = document.createElement("button");
     button.className = `slide-chip${index === activeIndex ? " is-active" : ""}`;
     button.type = "button";
-    button.innerHTML = `<small>${String(index + 1).padStart(2, "0")}</small><span>${escapeHtml(slide)}</span>`;
+    const screenTime = parseScreenTimeSlide(slide);
+    const label = screenTime ? `Screen Time mockup (${screenTime.average})` : slide;
+    button.innerHTML = `<small>${String(index + 1).padStart(2, "0")}</small><span>${escapeHtml(label)}</span>`;
     button.addEventListener("click", () => {
       activeIndex = index;
       render();
@@ -286,13 +535,14 @@ function escapeHtml(value) {
 }
 
 function makeDraft(topic, count) {
-  const clean = topic.trim() || "Your Screen Time is high. Now what?";
+  const clean = topic.trim() || "Your Phone Is Training You To Lose Focus";
   const base = [
     clean,
     "Check your top app first\nThat is where the spiral usually starts.",
-    "Don't fix the whole phone\nPick the app you reopen automatically.",
+    "[screen-time]\naverage: 10h 39m\nchange: 11%\ntotal: 74h 38m\ndays: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m\ncategories:\nSocial: 62h 12m\nEntertainment: 5h 25m\nShopping & Food: 2h 58m\n[/screen-time]",
     "Protect your worst time\nBedtime, mornings, work, or study.",
     "Start with one clean hour\nNot a perfect day.",
+    "Don't fix the whole phone\nPick the app you reopen automatically.",
     "Move the app out of reach\nLess visible means less automatic.",
     "The goal is not zero phone use\nThe goal is fewer automatic openings.",
     "If you keep going back to the same app\nTry EvoCat on the App Store.",
@@ -330,7 +580,7 @@ async function exportAll() {
     render();
     const blob = await canvasToBlob();
     entries.push({
-      filename: `${packageName}/evocat-slide-${String(index + 1).padStart(2, "0")}.png`,
+      filename: `evocat-slide-${String(index + 1).padStart(2, "0")}.png`,
       data: new Uint8Array(await blob.arrayBuffer()),
     });
   }
@@ -446,15 +696,15 @@ function crc32(data) {
 
 function buildPrompt() {
   const count = Number(els.slideCount.value) || 8;
-  return `Create ${count} square social slideshow slides for EvoCat, an app that helps people stop reopening distracting apps.
+  return `Create ${count} square social slideshow positions for EvoCat, an app that helps people stop reopening distracting apps.
 
 Topic: ${els.topic.value.trim()}
 
-Use this winning structure:
-- Slide 1: painful self-diagnosis question.
-- Slides 2-6: specific useful steps, each with a short headline and simple action.
-- Slide 7: core principle with a short memorable line.
-- Slide 8: soft EvoCat CTA that connects directly to the problem.
+Use this TikTok-ready structure:
+- Slide 1: a 5-9 word direct hook that lands in under 2 seconds.
+- Middle slides: specific useful steps, one idea per slide.
+- Optional middle visual: use a fake Screen Time screenshot slide when it makes the problem feel concrete.
+- Final slide: soft EvoCat CTA that connects directly to the problem.
 
 Copy rules:
 - One idea per slide.
@@ -463,6 +713,17 @@ Copy rules:
 - No emoji.
 - Avoid sounding like an ad.
 - Use line breaks inside slides when useful.
+- A Screen Time screenshot slide should be its own blank-line-separated slide and use this marker:
+[screen-time]
+average: 10h 39m
+change: 11%
+total: 74h 38m
+days: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m
+categories:
+Social: 62h 12m
+Entertainment: 5h 25m
+Shopping & Food: 2h 58m
+[/screen-time]
 - Last slide should be similar in tone to: If you keep going back to the same app / Try EvoCat on the App Store.
 
 Return only the slide texts separated by one blank line.`;

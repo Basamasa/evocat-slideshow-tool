@@ -37,8 +37,27 @@ The slide text box accepts:
 - blank-line-separated text
 - numbered AI output like `1. First slide`
 - JSON arrays like `["Slide one", "Slide two"]`
+- a `[screen-time]` block for one fake Screen Time visual slide
 
 Chinese text is supported with a bundled font in `assets/fonts/`. See `examples/chinese-slides.txt`. After pulling changes, run `npm install` so the local agent has the renderer dependencies.
+
+Screen Time mockup slides are supported in both the browser and CLI renderer. Use one block as one slide:
+
+```text
+[screen-time]
+average: 10h 39m
+change: 11%
+direction: up
+total: 74h 38m
+days: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m
+categories:
+Social: 62h 12m
+Entertainment: 5h 25m
+Shopping & Food: 2h 58m
+[/screen-time]
+```
+
+For current EvoCat social posts, agents should still create exactly 8 slide positions. The first slide should be a TikTok-fast hook, ideally 5-9 words, and a Screen Time mockup can replace a normal text slide when it makes the problem concrete.
 
 The default export is `2048 x 2048`.
 

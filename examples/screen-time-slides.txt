@@ -1,16 +1,28 @@
-Your Screen Time is high. Now what?
+Your Phone Is Training You To Lose Focus
 
 Check your top app first
 That is where the spiral usually starts.
 
-Don't fix the whole phone
-Pick the app you reopen automatically.
+[screen-time]
+average: 10h 39m
+change: 11%
+direction: up
+total: 74h 38m
+days: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m
+categories:
+Social: 62h 12m
+Entertainment: 5h 25m
+Shopping & Food: 2h 58m
+[/screen-time]
 
 Protect your worst time
 Bedtime, mornings, work, or study.
 
 Start with one clean hour
 Not a perfect day.
+
+Don't fix the whole phone
+Pick the app you reopen automatically.
 
 Move the app out of reach
 Less visible means less automatic.
