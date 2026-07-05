@@ -7,6 +7,7 @@ import * as fontkit from "fontkit";
 
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const DEFAULT_ICON = path.join(ROOT, "assets", "ironcat-app-icon.png");
+const DEFAULT_V2_CAT = path.join(ROOT, "assets", "ironcat_transparent_bg.png");
 const CJK_FONT_PATH = path.join(
   ROOT,
   "assets",
@@ -26,6 +27,7 @@ const brand = String(args.brand || "Evocat");
 const topic = String(args.topic || path.basename(args.input, path.extname(args.input)));
 const outDir = path.resolve(args.out || path.join("daily_posts", `${today()}-${slugify(topic)}`, "images"));
 const zipPath = args.zip ? path.resolve(args.zip) : "";
+const inputDir = path.dirname(path.resolve(args.input));
 const slides = await readSlides(args.input);
 
 if (!slides.length) {
@@ -36,6 +38,8 @@ await fs.mkdir(outDir, { recursive: true });
 
 const iconData = await fs.readFile(path.resolve(args.icon || DEFAULT_ICON));
 const iconBase64 = iconData.toString("base64");
+const v2CatData = await fs.readFile(path.resolve(args.v2Cat || DEFAULT_V2_CAT));
+const v2CatBase64 = v2CatData.toString("base64");
 const usesCjk = slides.some(hasCjk);
 const usesScreenTime = slides.some(parseScreenTimeSlide);
 const cjkFont = usesCjk || usesScreenTime ? await readRequiredFont(CJK_FONT_PATH) : null;
@@ -44,10 +48,13 @@ const written = [];
 for (let index = 0; index < slides.length; index += 1) {
   const filename = `evocat-slide-${String(index + 1).padStart(2, "0")}.png`;
   const output = path.join(outDir, filename);
+  const slideAssets = await loadSlideAssets(slides[index], inputDir);
   const svg = renderSvg({
     text: slides[index],
     brand,
     iconBase64,
+    v2CatBase64,
+    v2ImageDataUrl: slideAssets.v2ImageDataUrl,
     cjkFont,
     size,
   });
@@ -99,7 +106,8 @@ Options:
   --topic   Topic used for default output path.
   --brand   Footer brand. Default: Evocat.
   --size    PNG size. Default: 2048.
-  --icon    Optional mascot PNG path.`);
+  --icon    Optional mascot PNG path.
+  --v2Cat   Optional Evocat v2 cat PNG path.`);
 }
 
 async function readSlides(inputPath) {
@@ -130,6 +138,35 @@ async function readRequiredFont(filePath) {
   }
 }
 
+async function loadSlideAssets(slide, baseDir) {
+  const evocatV2 = parseEvocatV2Slide(slide);
+  if (!evocatV2?.image) return {};
+  if (/^data:image\//i.test(evocatV2.image)) {
+    return { v2ImageDataUrl: evocatV2.image };
+  }
+
+  const imagePath = resolveSlideAssetPath(evocatV2.image, baseDir);
+  const data = await fs.readFile(imagePath);
+  return {
+    v2ImageDataUrl: `data:${mimeTypeFor(imagePath)};base64,${data.toString("base64")}`,
+  };
+}
+
+function resolveSlideAssetPath(value, baseDir) {
+  const raw = String(value || "").trim();
+  if (path.isAbsolute(raw)) return raw;
+  return path.resolve(baseDir, raw);
+}
+
+function mimeTypeFor(filePath) {
+  const ext = path.extname(filePath).toLowerCase();
+  if (ext === ".jpg" || ext === ".jpeg") return "image/jpeg";
+  if (ext === ".png") return "image/png";
+  if (ext === ".webp") return "image/webp";
+  if (ext === ".gif") return "image/gif";
+  return "application/octet-stream";
+}
+
 async function renderPng(svg, output) {
   const resvg = new Resvg(svg, {
     font: {
@@ -140,7 +177,25 @@ async function renderPng(svg, output) {
   await fs.writeFile(output, pngData.asPng());
 }
 
-function renderSvg({ text, brand, iconBase64, cjkFont, size }) {
+function renderSvg({
+  text,
+  brand,
+  iconBase64,
+  v2CatBase64,
+  v2ImageDataUrl,
+  cjkFont,
+  size,
+}) {
+  const evocatV2 = parseEvocatV2Slide(text);
+  if (evocatV2) {
+    return renderEvocatV2Svg({
+      spec: evocatV2,
+      v2CatBase64,
+      v2ImageDataUrl,
+      size,
+    });
+  }
+
   const screenTime = parseScreenTimeSlide(text);
   if (screenTime) return renderScreenTimeSvg({ spec: screenTime, font: cjkFont, size });
 
@@ -263,6 +318,506 @@ function parseScreenTimeSlide(value) {
 
   if (categories.length) spec.categories = categories.slice(0, 3);
   return spec;
+}
+
+function parseEvocatV2Slide(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^\[evocat-v2\]([\s\S]*?)(?:\[\/evocat-v2\])?$/i);
+  if (!match) return null;
+
+  const spec = {
+    mode: "screen-time",
+    headline: "",
+    highlight: "LIFE.",
+    average: "8h 58m",
+    change: "13%",
+    direction: "up",
+    total: "62h 46m",
+    days: ["8h 11m", "9h 26m", "8h 41m", "8h 54m", "9h 50m", "8h 47m", "8h 19m"],
+    appleApp: "Instagram",
+    evocatApp: "Discord",
+    evocatName: "Larry",
+    body: "",
+    image: "",
+    imageFit: "cover",
+  };
+
+  for (const rawLine of match[1].split(/\n/g)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const pair = line.match(/^([^:]+):\s*(.+)$/);
+    if (!pair) continue;
+    const key = pair[1].trim().toLowerCase().replace(/[ _]/g, "-");
+    const val = pair[2].trim();
+    if (key === "mode" || key === "type") spec.mode = val.toLowerCase();
+    if (key === "headline") spec.headline = val;
+    if (key === "body" || key === "subtitle" || key === "subhead") spec.body = val;
+    if (key === "image" || key === "photo" || key === "picture") spec.image = val;
+    if (key === "image-fit" || key === "fit") spec.imageFit = val.toLowerCase();
+    if (key === "highlight") spec.highlight = val;
+    if (key === "average") spec.average = val;
+    if (key === "change") spec.change = val;
+    if (key === "direction") spec.direction = val.toLowerCase();
+    if (key === "total") spec.total = val;
+    if (key === "days") spec.days = val.split(/\s*,\s*/g).filter(Boolean);
+    if (key === "apple-app" || key === "appleapp") spec.appleApp = val;
+    if (key === "evocat-app" || key === "evocatapp") spec.evocatApp = val;
+    if (key === "evocat-name" || key === "evocatname") spec.evocatName = val;
+  }
+
+  return spec;
+}
+
+function renderEvocatV2Svg({
+  spec,
+  v2CatBase64,
+  v2ImageDataUrl,
+  size,
+}) {
+  const scale = size / 2048;
+  const s = (value) => round(value * scale);
+  const scene = /compare|limit/i.test(spec.mode)
+    ? renderV2ComparisonSceneSvg({ spec, v2CatBase64, scale })
+    : /screen/i.test(spec.mode)
+      ? renderV2ScreenTimeSceneSvg({ spec, scale })
+      : renderV2TextSceneSvg({ spec, v2ImageDataUrl, scale });
+
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+  <defs>
+    <filter id="v2BubbleGlow" x="-9%" y="-9%" width="118%" height="126%">
+      <feDropShadow dx="0" dy="0" stdDeviation="${s(16)}" flood-color="#ffffff" flood-opacity="0.94"/>
+    </filter>
+    <filter id="v2SoftGlow" x="-18%" y="-18%" width="136%" height="136%">
+      <feDropShadow dx="0" dy="0" stdDeviation="${s(18)}" flood-color="#ffffff" flood-opacity="0.48"/>
+    </filter>
+    <filter id="v2CatGlow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="0" stdDeviation="${s(18)}" flood-color="#cddcff" flood-opacity="0.72"/>
+    </filter>
+    <style>
+      .v2-sans { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; }
+      .v2-serif { font-family: Georgia, "Times New Roman", serif; }
+      .v2-headline { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Helvetica Neue", Arial, sans-serif; font-weight: 800; }
+      .v2-hand { font-family: "Chalkboard SE", "Marker Felt", "Noteworthy", "Comic Sans MS", cursive; font-weight: 400; }
+    </style>
+  </defs>
+  <rect width="${size}" height="${size}" fill="#000000"/>
+  <image x="${s(704)}" y="${s(1308)}" width="${s(640)}" height="${s(640)}" preserveAspectRatio="xMidYMid meet"
+    href="data:image/png;base64,${v2CatBase64}"/>
+  ${scene}
+</svg>`;
+}
+
+function renderV2ScreenTimeSceneSvg({ spec, scale }) {
+  const s = (value) => round(value * scale);
+  const hasHeadline = splitV2TextLines(spec.headline).length > 0;
+  const content = hasHeadline
+    ? `${renderV2StoryTextSvg({
+        spec: { ...spec, body: "" },
+        x: s(220),
+        y: s(246),
+        maxWidth: s(1628),
+        maxHeight: s(210),
+        scale,
+        options: {
+          headlineMax: 148,
+          headlineMin: 108,
+          lineRatio: 1.06,
+        },
+      })}
+  ${renderV2ScreenTimeDashboardSvg({ spec, x: s(316), y: s(600), w: s(1416), h: s(672), scale })}`
+    : renderV2ScreenTimeDashboardSvg({ spec, x: s(316), y: s(294), w: s(1416), h: s(788), scale });
+  return `${renderV2BubbleSvg({ x: s(126), y: s(138), w: s(1796), h: s(1188), r: s(170), scale })}
+  ${content}`;
+}
+
+function renderV2ComparisonSceneSvg({ spec, v2CatBase64, scale }) {
+  const s = (value) => round(value * scale);
+  const headline = spec.headline || "Apple gives you an exit.|EvoCat gives you friction.";
+  const highlight = spec.highlight || "EvoCat";
+  return `${renderV2BubbleSvg({ x: s(258), y: s(74), w: s(1532), h: s(1300), r: s(130), scale })}
+  ${renderV2HeadlineSvg({ spec: { headline, highlight }, x: s(316), y: s(132), fontSize: s(76), lineHeight: s(92), maxWidth: s(1420) })}
+  ${renderV2PhoneSvg({ x: s(386), y: s(448), w: s(514), h: s(842), kind: "apple", app: spec.appleApp, name: spec.evocatName, v2CatBase64, scale })}
+  ${renderV2PhoneSvg({ x: s(1148), y: s(448), w: s(514), h: s(842), kind: "evocat", app: spec.evocatApp, name: spec.evocatName, v2CatBase64, scale })}`;
+}
+
+function renderV2TextSceneSvg({ spec, v2ImageDataUrl, scale }) {
+  if (spec.image && v2ImageDataUrl) {
+    return renderV2ImageTextSceneSvg({ spec, imageDataUrl: v2ImageDataUrl, scale });
+  }
+
+  const s = (value) => round(value * scale);
+  return `${renderV2BubbleSvg({ x: s(170), y: s(154), w: s(1708), h: s(1158), r: s(154), scale })}
+  ${renderV2StoryTextSvg({
+    spec,
+    x: s(270),
+    y: s(294),
+    maxWidth: s(1510),
+    maxHeight: s(680),
+    scale,
+    options: {
+      headlineMax: 148,
+      headlineMin: 96,
+      bodyMax: 86,
+      bodyMin: 64,
+      lineRatio: 1.1,
+      bodyRatio: 1.16,
+      gap: 68,
+    },
+  })}`;
+}
+
+function renderV2ImageTextSceneSvg({ spec, imageDataUrl, scale }) {
+  const s = (value) => round(value * scale);
+  const imageLayout = getV2ImageTextLayout(spec);
+  return `${renderV2BubbleSvg({ x: s(170), y: s(154), w: s(1708), h: s(1158), r: s(154), scale })}
+  ${renderV2StoryTextSvg({
+    spec,
+    x: s(270),
+    y: s(252),
+    maxWidth: s(1510),
+        maxHeight: s(430),
+    scale,
+    options: {
+      headlineMax: 132,
+      headlineMin: 76,
+      bodyMax: 76,
+      bodyMin: 54,
+      lineRatio: 1.1,
+      bodyRatio: 1.16,
+      gap: 54,
+    },
+  })}
+  ${renderV2JobImageSvg({ imageDataUrl, x: s(imageLayout.x), y: s(imageLayout.y), w: s(imageLayout.w), h: s(imageLayout.h), fit: spec.imageFit, scale })}`;
+}
+
+function getV2ImageTextLayout(spec) {
+  const headlineLines = Math.max(1, splitV2Headline(spec.headline).length);
+  const bodyLines = splitV2TextLines(spec.body).length;
+  let y = 620;
+  if (bodyLines && headlineLines > 1) y = 710;
+  else if (bodyLines) y = 670;
+  else if (headlineLines <= 1) y = 600;
+  return { x: 220, y, w: 1608, h: 1302 - y };
+}
+
+function renderV2JobImageSvg({ imageDataUrl, x, y, w, h, fit, scale }) {
+  const s = (value) => round(value * scale);
+  const aspect = String(fit || "").toLowerCase() === "contain" ? "xMidYMid meet" : "xMidYMid slice";
+  return `<defs>
+    <clipPath id="v2JobImageClip">
+      <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${s(48)}"/>
+    </clipPath>
+  </defs>
+  <g>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${s(48)}" fill="#111116"/>
+    <image x="${x}" y="${y}" width="${w}" height="${h}" preserveAspectRatio="${aspect}"
+      clip-path="url(#v2JobImageClip)" href="${imageDataUrl}"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${s(48)}" fill="#000000" fill-opacity="0.18"/>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${s(48)}" fill="none"
+      stroke="#ffffff" stroke-opacity="0.22" stroke-width="${s(2.2)}"/>
+  </g>`;
+}
+
+function renderV2BubbleSvg({ x, y, w, h, r, scale }) {
+  const s = (value) => round(value * scale);
+  const d = [
+    `M ${x + r} ${y}`,
+    `L ${x + w - r} ${y}`,
+    `Q ${x + w} ${y} ${x + w} ${y + r}`,
+    `L ${x + w} ${y + h - r}`,
+    `Q ${x + w} ${y + h} ${x + w - r} ${y + h}`,
+    `L ${x + w * 0.64} ${y + h}`,
+    `C ${x + w * 0.63} ${y + h + s(92)} ${x + w * 0.55} ${y + h + s(158)} ${x + w * 0.49} ${y + h + s(172)}`,
+    `C ${x + w * 0.54} ${y + h + s(92)} ${x + w * 0.53} ${y + h + s(24)} ${x + w * 0.46} ${y + h}`,
+    `L ${x + r} ${y + h}`,
+    `Q ${x} ${y + h} ${x} ${y + h - r}`,
+    `L ${x} ${y + r}`,
+    `Q ${x} ${y} ${x + r} ${y}`,
+    "Z",
+  ].join(" ");
+
+  return `<path d="${d}" fill="none" stroke="#ffffff" stroke-opacity="0.82"
+    stroke-width="${s(16)}" filter="url(#v2BubbleGlow)"/>
+  <path d="${d}" fill="#050508" fill-opacity="0.96" stroke="#ffffff" stroke-opacity="0.98"
+    stroke-width="${s(10.5)}"/>
+  <path d="${d}" fill="none" stroke="#dce4ff" stroke-opacity="0.66" stroke-width="${s(2.2)}"/>`;
+}
+
+function renderV2ScreenTimeDashboardSvg({ spec, x, y, w, h, scale }) {
+  const s = (value) => round(value * scale);
+  const footerY = y + h - s(100);
+  const chartY = y + s(252);
+  const chartH = Math.min(s(410), Math.max(s(220), footerY - chartY - s(42)));
+  return `<g>
+    <text class="v2-serif" x="${x}" y="${y + s(58)}" font-size="${s(54)}" font-weight="700" fill="#a9a9b2">Last Week&apos;s Average</text>
+    <text class="v2-serif" x="${x}" y="${y + s(170)}" font-size="${s(116)}" font-weight="900" fill="#ffffff">${escapeXml(spec.average)}</text>
+    ${renderV2TrendBadgeSmallSvg({ spec, x: x + s(800), y: y + s(137), scale })}
+    ${renderV2MiniChartSvg({ spec, x, y: chartY, w: w - s(122), h: chartH, scale })}
+    <line x1="${x}" y1="${footerY}" x2="${x + w}" y2="${footerY}"
+      stroke="#ffffff" stroke-opacity="0.12" stroke-width="${s(1.4)}"/>
+    <text class="v2-serif" x="${x}" y="${y + h - s(38)}" font-size="${s(54)}" font-weight="800" fill="#ffffff">Total Screen Time</text>
+    <text class="v2-serif" x="${x + w}" y="${y + h - s(38)}" text-anchor="end" font-size="${s(54)}" font-weight="800" fill="#c2c0c8">${escapeXml(spec.total)}</text>
+  </g>`;
+}
+
+function renderV2StoryTextSvg({ spec, x, y, maxWidth, maxHeight, scale, options = {} }) {
+  const layout = fitV2StoryTextSvg({ spec, maxWidth, maxHeight, scale, options });
+  const headline = layout.headlineLines
+    .map(
+      (line, index) =>
+        `<text class="v2-hand" x="${x}" y="${round(y + index * layout.headlineLineHeight)}" dominant-baseline="text-before-edge" font-size="${round(layout.headlineSize)}" fill="#ffffff">${escapeXml(line)}</text>`
+    )
+    .join("");
+  const bodyY = y + layout.headlineLines.length * layout.headlineLineHeight + layout.gap;
+  const body = layout.bodyLines
+    .map(
+      (line, index) =>
+        `<text class="v2-hand" x="${x}" y="${round(bodyY + index * layout.bodyLineHeight)}" dominant-baseline="text-before-edge" font-size="${round(layout.bodySize)}" fill="#ffffff">${escapeXml(line)}</text>`
+    )
+    .join("");
+  return `<g filter="url(#v2SoftGlow)">${headline}</g><g>${body}</g>`;
+}
+
+function fitV2StoryTextSvg({ spec, maxWidth, maxHeight, scale, options = {} }) {
+  const s = (value) => round(value * scale);
+  const headlineSource = splitV2TextLines(spec.headline);
+  const bodySource = splitV2TextLines(spec.body);
+  let headlineSize = s(options.headlineMax || 112);
+  const headlineMin = s(options.headlineMin || 68);
+  const bodyBaseRatio = (options.bodyMax || 68) / (options.headlineMax || 112);
+  const bodyMin = s(options.bodyMin || 46);
+  const lineRatio = options.lineRatio || 1.2;
+  const bodyRatio = options.bodyRatio || 1.24;
+  const gapBase = s(options.gap || 62);
+
+  while (headlineSize >= headlineMin) {
+    const bodySize = Math.max(bodyMin, headlineSize * bodyBaseRatio);
+    const headlineLines = headlineSource.flatMap((line) => wrapSvgWords(line, maxWidth, headlineSize)).slice(0, 5);
+    const bodyLines = bodySource.flatMap((line) => wrapSvgWords(line, maxWidth, bodySize)).slice(0, 5);
+    const headlineLineHeight = headlineSize * lineRatio;
+    const bodyLineHeight = bodySize * bodyRatio;
+    const gap = bodyLines.length ? gapBase : 0;
+    const totalHeight = headlineLines.length * headlineLineHeight + gap + bodyLines.length * bodyLineHeight;
+    if (totalHeight <= maxHeight || headlineSize <= headlineMin) {
+      return { headlineLines, bodyLines, headlineSize, bodySize, headlineLineHeight, bodyLineHeight, gap };
+    }
+    headlineSize -= s(4);
+  }
+
+  return {
+    headlineLines: headlineSource,
+    bodyLines: bodySource,
+    headlineSize,
+    bodySize: Math.max(bodyMin, headlineSize * bodyBaseRatio),
+    headlineLineHeight: headlineSize * lineRatio,
+    bodyLineHeight: Math.max(bodyMin, headlineSize * bodyBaseRatio) * bodyRatio,
+    gap: gapBase,
+  };
+}
+
+function wrapSvgWords(text, maxWidth, fontSize) {
+  const words = String(text || "").trim().split(/\s+/g).filter(Boolean);
+  const lines = [];
+  let line = "";
+  const estimate = (value) => value.length * fontSize * 0.48;
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+    if (line && estimate(next) > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+  if (line) lines.push(line);
+  return lines.length ? lines : [text];
+}
+
+function renderV2MiniScreenTimeCardSvg({ spec, x, y, w, h, scale }) {
+  const s = (value) => round(value * scale);
+  return `<g>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${s(42)}" fill="#17181f" fill-opacity="0.9"
+      stroke="#ffffff" stroke-opacity="0.09" stroke-width="${s(1.5)}" filter="url(#v2SoftGlow)"/>
+    <text class="v2-serif" x="${x + s(54)}" y="${y + s(70)}" font-size="${s(38)}" font-weight="700" fill="#a9a9b2">Last Week&apos;s Average</text>
+    <text class="v2-serif" x="${x + s(54)}" y="${y + s(154)}" font-size="${s(86)}" font-weight="900" fill="#ffffff">${escapeXml(spec.average)}</text>
+    ${renderV2TrendBadgeSmallSvg({ spec, x: x + s(572), y: y + s(128), scale })}
+    ${renderV2MiniChartSvg({ spec, x: x + s(62), y: y + s(196), w: w - s(196), h: s(174), scale })}
+    <line x1="${x + s(54)}" y1="${y + h - s(78)}" x2="${x + w - s(54)}" y2="${y + h - s(78)}"
+      stroke="#ffffff" stroke-opacity="0.09" stroke-width="${s(1.4)}"/>
+    <text class="v2-serif" x="${x + s(54)}" y="${y + h - s(30)}" font-size="${s(38)}" font-weight="800" fill="#f3f3f6">Total Screen Time</text>
+    <text class="v2-serif" x="${x + w - s(54)}" y="${y + h - s(30)}" text-anchor="end" font-size="${s(38)}" font-weight="800" fill="#b7b5be">${escapeXml(spec.total)}</text>
+  </g>`;
+}
+
+function renderV2TrendBadgeSmallSvg({ spec, x, y, scale }) {
+  const s = (value) => round(value * scale);
+  const arrow =
+    spec.direction === "down"
+      ? `M ${x} ${y - s(30)} L ${x} ${y - s(6)} M ${x - s(12)} ${y - s(16)} L ${x} ${y - s(4)} L ${x + s(12)} ${y - s(16)}`
+      : `M ${x} ${y - s(6)} L ${x} ${y - s(30)} M ${x - s(12)} ${y - s(20)} L ${x} ${y - s(32)} L ${x + s(12)} ${y - s(20)}`;
+  return `<g>
+    <circle cx="${x}" cy="${y - s(18)}" r="${s(22)}" fill="#b8b7bf"/>
+    <path d="${arrow}" fill="none" stroke="#171820" stroke-width="${s(5)}" stroke-linecap="round" stroke-linejoin="round"/>
+    <text class="v2-serif" x="${x + s(42)}" y="${y - s(4)}" font-size="${s(36)}" font-weight="700" fill="#b8b7bf">${escapeXml(`${spec.change} from last week`)}</text>
+  </g>`;
+}
+
+function renderV2MiniChartSvg({ spec, x, y, w, h, scale }) {
+  const s = (value) => round(value * scale);
+  const chartBottom = y + h;
+  const chartRight = x + w;
+  const labels = ["S", "M", "T", "W", "T", "F", "S"];
+  const dayValues = spec.days.map(parseDurationToHours);
+  while (dayValues.length < 7) dayValues.push(dayValues[dayValues.length - 1] || 8);
+  const maxHours = getV2ChartMaxHours(dayValues, parseDurationToHours(spec.average));
+  const avgY = chartBottom - (parseDurationToHours(spec.average) / maxHours) * h;
+  const slot = w / 7;
+  const barW = Math.min(s(62), slot - s(30));
+  const grid = [];
+  for (let i = 0; i <= 4; i += 1) {
+    const gy = y + (h * i) / 4;
+    grid.push(`<line x1="${x}" y1="${round(gy)}" x2="${chartRight}" y2="${round(gy)}"/>`);
+  }
+  const bars = spec.days.slice(0, 7).map((day, index) => {
+    const hours = parseDurationToHours(day);
+    const barH = Math.max(s(34), (hours / maxHours) * h);
+    const bx = x + slot * index + (slot - barW) / 2;
+    const by = chartBottom - barH;
+    return `${renderStackedBarSvg({ x: round(bx), y: round(by), w: round(barW), h: round(barH), index, scale })}
+    <text class="v2-serif" x="${round(bx + s(4))}" y="${chartBottom + s(34)}" font-size="${s(28)}" font-weight="700" fill="#85828c">${labels[index]}</text>`;
+  });
+  return `<g>
+    <g stroke="#ffffff" stroke-opacity="0.08" stroke-width="${s(1.1)}">${grid.join("")}</g>
+    <line x1="${x}" y1="${round(avgY)}" x2="${chartRight}" y2="${round(avgY)}"
+      stroke="#68df83" stroke-width="${s(3)}" stroke-dasharray="${s(8)} ${s(12)}"/>
+    ${bars.join("")}
+    <text class="v2-serif" x="${chartRight + s(24)}" y="${y + s(10)}" font-size="${s(32)}" font-weight="700" fill="#85828c">${maxHours}h</text>
+    <text class="v2-serif" x="${chartRight + s(24)}" y="${y + h * 0.52}" font-size="${s(32)}" font-weight="700" fill="#85828c">${maxHours / 2}h</text>
+    <text class="v2-serif" x="${chartRight + s(24)}" y="${chartBottom + s(8)}" font-size="${s(32)}" font-weight="700" fill="#85828c">0</text>
+    <text class="v2-serif" x="${chartRight + s(24)}" y="${round(avgY + s(10))}" font-size="${s(32)}" font-weight="700" fill="#68df83">avg</text>
+  </g>`;
+}
+
+function getV2ChartMaxHours(dayValues, average) {
+  const peak = Math.max(average, ...dayValues.filter(Number.isFinite));
+  if (peak <= 2) return 4;
+  if (peak <= 4) return 6;
+  if (peak <= 7) return 10;
+  return 14;
+}
+
+function renderV2HeadlineSvg({ spec, x, y, fontSize, lineHeight, maxWidth }) {
+  const lines = splitV2TextLines(spec.headline);
+  const highlight = String(spec.highlight || "").trim().toUpperCase();
+  return `<g filter="url(#v2SoftGlow)">
+    ${lines
+      .map((line, index) => {
+        const upper = line.toUpperCase();
+        const at = highlight ? upper.indexOf(highlight) : -1;
+        const base = `class="v2-hand" x="${x}" y="${y + index * lineHeight}" dominant-baseline="text-before-edge" font-size="${fontSize}" fill="#ffffff"`;
+        if (at < 0) return `<text ${base}>${escapeXml(line)}</text>`;
+        const before = line.slice(0, at);
+        const marked = line.slice(at, at + highlight.length);
+        const after = line.slice(at + highlight.length);
+        return `<text ${base}><tspan>${escapeXml(before)}</tspan><tspan fill="#ffffff">${escapeXml(marked)}</tspan><tspan>${escapeXml(after)}</tspan></text>`;
+      })
+      .join("")}
+  </g>`;
+}
+
+function renderV2PhoneSvg({ x, y, w, h, kind, app, name, v2CatBase64, scale }) {
+  const s = (value) => round(value * scale);
+  const title = kind === "apple" ? "Time Limit" : `${name} locked ${app}`;
+  const body = kind === "apple"
+    ? [`You&apos;ve reached your limit`, `on ${escapeXml(app)}.`]
+    : ["Strict mode means strict.", "Back to the work."];
+  const icon = kind === "apple"
+    ? renderHourglassSvg({ cx: x + w / 2, cy: y + s(236), size: s(72), scale })
+    : renderV2CatThumbSvg({ cx: x + w / 2, cy: y + s(242), size: s(130), v2CatBase64 });
+  const primary = kind === "apple"
+    ? renderV2PillSvg({ x: x + s(58), y: y + h - s(174), w: w - s(116), h: s(76), fill: "#3b8df2", color: "#d8fff7", label: "OK", scale })
+    : renderV2PillSvg({ x: x + s(58), y: y + h - s(174), w: w - s(116), h: s(76), fill: "#e2bd61", color: "#4b2605", label: `Face ${name}`, scale });
+  const secondary = renderV2OutlinePillSvg({
+    x: x + s(58),
+    y: y + h - s(82),
+    w: w - s(116),
+    h: s(66),
+    label: kind === "apple" ? "Ignore Limit" : "Close App",
+    scale,
+  });
+  return `<g>
+    <rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${s(46)}" fill="${kind === "apple" ? "#242426" : "#1c1a18"}"
+      stroke="#ffffff" stroke-opacity="0.1" stroke-width="${s(1.3)}"/>
+    <text class="v2-sans" x="${x + s(48)}" y="${y + s(62)}" font-size="${s(24)}" font-weight="800" fill="#ffffff">${kind === "apple" ? "9:31" : "9:09"}</text>
+    <text class="v2-sans" x="${x + w - s(48)}" y="${y + s(62)}" text-anchor="end" font-size="${s(24)}" font-weight="800" fill="#ffffff">${kind === "apple" ? "74" : "78"}</text>
+    ${icon}
+    <text class="v2-sans" x="${x + w / 2}" y="${y + (kind === "apple" ? s(338) : s(356))}" text-anchor="middle"
+      font-size="${kind === "apple" ? s(42) : s(37)}" font-weight="${kind === "apple" ? "800" : "850"}" fill="#ffffff">${escapeXml(title)}</text>
+    ${body
+      .map(
+        (line, index) =>
+          `<text class="v2-sans" x="${x + w / 2}" y="${y + (kind === "apple" ? s(400) : s(414)) + index * s(42)}" text-anchor="middle"
+            font-size="${kind === "apple" ? s(34) : s(33)}" font-weight="500" fill="${kind === "apple" ? "#a7a5ae" : "#b8b3ad"}">${line}</text>`
+      )
+      .join("")}
+    ${primary}
+    ${secondary}
+  </g>`;
+}
+
+function renderV2PillSvg({ x, y, w, h, fill, color, label, scale }) {
+  const s = (value) => round(value * scale);
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="${fill}"/>
+  <text class="v2-sans" x="${x + w / 2}" y="${y + h / 2 + s(10)}" text-anchor="middle" font-size="${s(28)}" font-weight="800" fill="${color}">${escapeXml(label)}</text>`;
+}
+
+function renderV2OutlinePillSvg({ x, y, w, h, label, scale }) {
+  const s = (value) => round(value * scale);
+  return `<rect x="${x}" y="${y}" width="${w}" height="${h}" rx="${h / 2}" fill="#080808" fill-opacity="0.2"
+    stroke="#ffffff" stroke-opacity="0.13" stroke-width="${s(1.5)}"/>
+  <text class="v2-sans" x="${x + w / 2}" y="${y + h / 2 + s(10)}" text-anchor="middle" font-size="${s(28)}" font-weight="500" fill="#d8d6dc">${escapeXml(label)}</text>`;
+}
+
+function renderHourglassSvg({ cx, cy, size, scale }) {
+  const s = (value) => round(value * scale);
+  const d = [
+    `M ${cx - size * 0.42} ${cy - size * 0.5}`,
+    `Q ${cx} ${cy - size * 0.52} ${cx + size * 0.42} ${cy - size * 0.5}`,
+    `Q ${cx + size * 0.34} ${cy - size * 0.12} ${cx + size * 0.08} ${cy}`,
+    `Q ${cx + size * 0.34} ${cy + size * 0.12} ${cx + size * 0.42} ${cy + size * 0.5}`,
+    `Q ${cx} ${cy + size * 0.52} ${cx - size * 0.42} ${cy + size * 0.5}`,
+    `Q ${cx - size * 0.34} ${cy + size * 0.12} ${cx - size * 0.08} ${cy}`,
+    `Q ${cx - size * 0.34} ${cy - size * 0.12} ${cx - size * 0.42} ${cy - size * 0.5}`,
+    "Z",
+  ].join(" ");
+  return `<path d="${d}" fill="#377ae6"/>
+  <path d="M ${cx - size * 0.22} ${cy + size * 0.3} L ${cx} ${cy + size * 0.1} L ${cx + size * 0.22} ${cy + size * 0.3} Z"
+    fill="none" stroke="#222226" stroke-opacity="0.72" stroke-width="${s(8)}" stroke-linejoin="round"/>`;
+}
+
+function renderV2CatThumbSvg({ cx, cy, size, v2CatBase64 }) {
+  return `<g filter="url(#v2SoftGlow)">
+    <image x="${cx - size / 2}" y="${cy - size / 2}" width="${size}" height="${size}"
+      preserveAspectRatio="xMidYMid meet"
+      href="data:image/png;base64,${v2CatBase64}"/>
+  </g>`;
+}
+
+function splitV2Headline(value) {
+  return String(value || "")
+    .replace(/\\n/g, "|")
+    .split("|")
+    .map((line) => line.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function splitV2TextLines(value) {
+  return String(value || "")
+    .replace(/\\n/g, "|")
+    .split("|")
+    .map((line) => line.trim())
+    .filter(Boolean);
 }
 
 function renderScreenTimeSvg({ spec, font, size }) {

@@ -25,7 +25,7 @@ const els = {
 let slides = [
   "Your Phone Is Training You To Lose Focus",
   "Check your top app first\nThat is where the spiral usually starts.",
-  "[screen-time]\naverage: 10h 39m\nchange: 11%\ntotal: 74h 38m\ndays: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m\ncategories:\nSocial: 62h 12m\nEntertainment: 5h 25m\nShopping & Food: 2h 58m\n[/screen-time]",
+  "[evocat-v2]\nmode: screen-time\nheadline: Is this your Screen Time?\naverage: 8h 58m\nchange: 13%\ntotal: 62h 46m\ndays: 8h 40m, 9h 58m, 9h 18m, 9h 22m, 10h 45m, 9h 24m, 8h 51m\n[/evocat-v2]",
   "Don't fix the whole phone\nPick the app you reopen automatically.",
   "Protect your worst time\nBedtime, mornings, work, or study.",
   "Move the app out of reach\nLess visible means less automatic.",
@@ -37,6 +37,10 @@ let activeIndex = 0;
 const icon = new Image();
 icon.src = "./assets/ironcat-app-icon.png";
 icon.onload = render;
+const v2Cat = new Image();
+v2Cat.src = "./assets/ironcat_transparent_bg.png";
+v2Cat.onload = render;
+const v2SlideImages = new Map();
 if (document.fonts) document.fonts.ready.then(render);
 
 function splitSlides(value) {
@@ -254,8 +258,11 @@ function drawFooter() {
 function render() {
   setCanvasSize();
   const slide = slides[activeIndex] || "";
+  const evocatV2 = parseEvocatV2Slide(slide);
   const screenTime = parseScreenTimeSlide(slide);
-  if (screenTime) {
+  if (evocatV2) {
+    drawEvocatV2Slide(evocatV2);
+  } else if (screenTime) {
     drawScreenTimeSlide(screenTime);
   } else {
     drawBackground();
@@ -325,6 +332,683 @@ function parseScreenTimeSlide(value) {
 
   if (categories.length) spec.categories = categories.slice(0, 3);
   return spec;
+}
+
+function parseEvocatV2Slide(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/^\[evocat-v2\]([\s\S]*?)(?:\[\/evocat-v2\])?$/i);
+  if (!match) return null;
+
+  const spec = {
+    mode: "screen-time",
+    headline: "",
+    highlight: "LIFE.",
+    average: "8h 58m",
+    change: "13%",
+    direction: "up",
+    total: "62h 46m",
+    days: ["8h 11m", "9h 26m", "8h 41m", "8h 54m", "9h 50m", "8h 47m", "8h 19m"],
+    appleApp: "Instagram",
+    evocatApp: "Discord",
+    evocatName: "Larry",
+    body: "",
+    image: "",
+    imageFit: "cover",
+  };
+
+  for (const rawLine of match[1].split(/\n/g)) {
+    const line = rawLine.trim();
+    if (!line) continue;
+    const pair = line.match(/^([^:]+):\s*(.+)$/);
+    if (!pair) continue;
+    const key = pair[1].trim().toLowerCase().replace(/[ _]/g, "-");
+    const val = pair[2].trim();
+    if (key === "mode" || key === "type") spec.mode = val.toLowerCase();
+    if (key === "headline") spec.headline = val;
+    if (key === "body" || key === "subtitle" || key === "subhead") spec.body = val;
+    if (key === "image" || key === "photo" || key === "picture") spec.image = val;
+    if (key === "image-fit" || key === "fit") spec.imageFit = val.toLowerCase();
+    if (key === "highlight") spec.highlight = val;
+    if (key === "average") spec.average = val;
+    if (key === "change") spec.change = val;
+    if (key === "direction") spec.direction = val.toLowerCase();
+    if (key === "total") spec.total = val;
+    if (key === "days") spec.days = val.split(/\s*,\s*/g).filter(Boolean);
+    if (key === "apple-app" || key === "appleapp") spec.appleApp = val;
+    if (key === "evocat-app" || key === "evocatapp") spec.evocatApp = val;
+    if (key === "evocat-name" || key === "evocatname") spec.evocatName = val;
+  }
+
+  return spec;
+}
+
+function drawEvocatV2Slide(spec) {
+  drawV2Background();
+  if (/compare|limit/i.test(spec.mode)) {
+    drawV2ComparisonScene(spec);
+  } else if (/screen/i.test(spec.mode)) {
+    drawV2ScreenTimeScene(spec);
+  } else {
+    drawV2TextScene(spec);
+  }
+}
+
+function drawV2Background() {
+  const s = getScale();
+  ctx.fillStyle = "#000000";
+  ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+  if (v2Cat.complete) {
+    ctx.drawImage(v2Cat, 704 * s, 1308 * s, 640 * s, 640 * s);
+  }
+}
+
+function drawV2ScreenTimeScene(spec) {
+  const s = getScale();
+  drawV2Bubble(126 * s, 138 * s, 1796 * s, 1188 * s, 170 * s);
+  if (splitV2TextLines(spec.headline).length) {
+    drawV2StoryText({ ...spec, body: "" }, 220 * s, 246 * s, 1628 * s, 210 * s, {
+      headlineMax: 148,
+      headlineMin: 108,
+      lineRatio: 1.06,
+    });
+    drawV2ScreenTimeDashboard(spec, 316 * s, 600 * s, 1416 * s, 672 * s);
+  } else {
+    drawV2ScreenTimeDashboard(spec, 316 * s, 294 * s, 1416 * s, 788 * s);
+  }
+}
+
+function drawV2ComparisonScene(spec) {
+  const s = getScale();
+  drawV2Bubble(258 * s, 74 * s, 1532 * s, 1300 * s, 130 * s);
+  drawV2Headline(
+    {
+      headline: spec.headline || "Apple gives you an exit.|EvoCat gives you friction.",
+      highlight: spec.highlight || "EvoCat",
+    },
+    316 * s,
+    132 * s,
+    76 * s,
+    92 * s,
+    1420 * s
+  );
+  drawV2Phone({
+    x: 386 * s,
+    y: 448 * s,
+    w: 514 * s,
+    h: 842 * s,
+    kind: "apple",
+    app: spec.appleApp,
+    name: spec.evocatName,
+  });
+  drawV2Phone({
+    x: 1148 * s,
+    y: 448 * s,
+    w: 514 * s,
+    h: 842 * s,
+    kind: "evocat",
+    app: spec.evocatApp,
+    name: spec.evocatName,
+  });
+}
+
+function drawV2TextScene(spec) {
+  if (spec.image) {
+    drawV2ImageTextScene(spec);
+    return;
+  }
+
+  const s = getScale();
+  drawV2Bubble(170 * s, 154 * s, 1708 * s, 1158 * s, 154 * s);
+  drawV2StoryText(spec, 270 * s, 294 * s, 1510 * s, 680 * s, {
+    headlineMax: 148,
+    headlineMin: 96,
+    bodyMax: 86,
+    bodyMin: 64,
+    lineRatio: 1.1,
+    bodyRatio: 1.16,
+    gap: 68,
+  });
+}
+
+function drawV2ImageTextScene(spec) {
+  const s = getScale();
+  const imageLayout = getV2ImageTextLayout(spec);
+  drawV2Bubble(170 * s, 154 * s, 1708 * s, 1158 * s, 154 * s);
+  drawV2StoryText(spec, 270 * s, 252 * s, 1510 * s, 430 * s, {
+    headlineMax: 132,
+    headlineMin: 76,
+    bodyMax: 76,
+    bodyMin: 54,
+    lineRatio: 1.1,
+    bodyRatio: 1.16,
+    gap: 54,
+  });
+  drawV2JobImage(spec.image, imageLayout.x * s, imageLayout.y * s, imageLayout.w * s, imageLayout.h * s, spec.imageFit);
+}
+
+function getV2ImageTextLayout(spec) {
+  const headlineLines = Math.max(1, splitV2Headline(spec.headline).length);
+  const bodyLines = splitV2TextLines(spec.body).length;
+  let y = 620;
+  if (bodyLines && headlineLines > 1) y = 710;
+  else if (bodyLines) y = 670;
+  else if (headlineLines <= 1) y = 600;
+  return { x: 220, y, w: 1608, h: 1302 - y };
+}
+
+function drawV2JobImage(src, x, y, w, h, fit = "cover") {
+  const s = getScale();
+  const image = getV2SlideImage(src);
+  ctx.save();
+  drawRoundRect(ctx, x, y, w, h, 48 * s);
+  ctx.fillStyle = "#111116";
+  ctx.fill();
+  if (image.complete && image.naturalWidth && image.naturalHeight) {
+    ctx.clip();
+    if (String(fit).toLowerCase() === "contain") {
+      drawImageContain(image, x, y, w, h);
+    } else {
+      drawImageCover(image, x, y, w, h);
+    }
+    ctx.fillStyle = "rgba(0,0,0,0.18)";
+    ctx.fillRect(x, y, w, h);
+  }
+  ctx.restore();
+
+  ctx.save();
+  drawRoundRect(ctx, x, y, w, h, 48 * s);
+  ctx.strokeStyle = "rgba(255,255,255,0.22)";
+  ctx.lineWidth = 2.2 * s;
+  ctx.stroke();
+  ctx.restore();
+}
+
+function getV2SlideImage(src) {
+  const key = String(src || "").trim();
+  if (!v2SlideImages.has(key)) {
+    const image = new Image();
+    image.onload = render;
+    image.src = key;
+    v2SlideImages.set(key, image);
+  }
+  return v2SlideImages.get(key);
+}
+
+function drawImageCover(image, x, y, w, h) {
+  const scale = Math.max(w / image.naturalWidth, h / image.naturalHeight);
+  const sw = w / scale;
+  const sh = h / scale;
+  const sx = (image.naturalWidth - sw) / 2;
+  const sy = (image.naturalHeight - sh) / 2;
+  ctx.drawImage(image, sx, sy, sw, sh, x, y, w, h);
+}
+
+function drawImageContain(image, x, y, w, h) {
+  const scale = Math.min(w / image.naturalWidth, h / image.naturalHeight);
+  const dw = image.naturalWidth * scale;
+  const dh = image.naturalHeight * scale;
+  const dx = x + (w - dw) / 2;
+  const dy = y + (h - dh) / 2;
+  ctx.drawImage(image, dx, dy, dw, dh);
+}
+
+function drawV2Bubble(x, y, w, h, r) {
+  const s = getScale();
+  ctx.save();
+  ctx.shadowColor = "rgba(255,255,255,0.94)";
+  ctx.shadowBlur = 32 * s;
+  ctx.lineWidth = 10.5 * s;
+  ctx.strokeStyle = "rgba(255,255,255,0.98)";
+  ctx.fillStyle = "rgba(5,5,8,0.94)";
+  ctx.beginPath();
+  ctx.moveTo(x + r, y);
+  ctx.lineTo(x + w - r, y);
+  ctx.quadraticCurveTo(x + w, y, x + w, y + r);
+  ctx.lineTo(x + w, y + h - r);
+  ctx.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  ctx.lineTo(x + w * 0.64, y + h);
+  ctx.bezierCurveTo(x + w * 0.63, y + h + 92 * s, x + w * 0.55, y + h + 158 * s, x + w * 0.49, y + h + 172 * s);
+  ctx.bezierCurveTo(x + w * 0.54, y + h + 92 * s, x + w * 0.53, y + h + 24 * s, x + w * 0.46, y + h);
+  ctx.lineTo(x + r, y + h);
+  ctx.quadraticCurveTo(x, y + h, x, y + h - r);
+  ctx.lineTo(x, y + r);
+  ctx.quadraticCurveTo(x, y, x + r, y);
+  ctx.closePath();
+  ctx.fill();
+  ctx.stroke();
+
+  ctx.shadowBlur = 0;
+  ctx.lineWidth = 2.2 * s;
+  ctx.strokeStyle = "rgba(220,228,255,0.66)";
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawV2ScreenTimeDashboard(spec, x, y, w, h) {
+  const s = getScale();
+  ctx.save();
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.font = `700 ${54 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#a9a9b2";
+  ctx.fillText("Last Week's Average", x, y + 58 * s);
+
+  ctx.font = `900 ${116 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(spec.average, x, y + 170 * s);
+  drawTrendBadgeSmall(spec, x + 800 * s, y + 137 * s);
+
+  const footerY = y + h - 100 * s;
+  const chartY = y + 252 * s;
+  const chartH = Math.min(410 * s, Math.max(220 * s, footerY - chartY - 42 * s));
+  drawV2MiniChart(spec, x, chartY, w - 122 * s, chartH);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.12)";
+  ctx.lineWidth = 1.4 * s;
+  ctx.beginPath();
+  ctx.moveTo(x, footerY);
+  ctx.lineTo(x + w, footerY);
+  ctx.stroke();
+
+  ctx.font = `800 ${54 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText("Total Screen Time", x, y + h - 38 * s);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#c2c0c8";
+  ctx.fillText(spec.total, x + w, y + h - 38 * s);
+  ctx.restore();
+}
+
+function drawV2StoryText(spec, x, y, maxWidth, maxHeight, options = {}) {
+  const s = getScale();
+  const layout = fitV2StoryText(spec, maxWidth, maxHeight, options);
+
+  ctx.save();
+  ctx.textBaseline = "top";
+  ctx.textAlign = "left";
+  ctx.shadowColor = "rgba(255,255,255,0.36)";
+  ctx.shadowBlur = 10 * s;
+  ctx.font = v2HandFont(layout.headlineSize);
+  ctx.fillStyle = "#ffffff";
+  layout.headlineLines.forEach((line, index) => {
+    ctx.fillText(line, x, y + index * layout.headlineLineHeight);
+  });
+
+  if (layout.bodyLines.length) {
+    ctx.shadowBlur = 7 * s;
+    ctx.font = v2HandFont(layout.bodySize);
+    ctx.fillStyle = "#ffffff";
+    const bodyY = y + layout.headlineLines.length * layout.headlineLineHeight + layout.gap;
+    layout.bodyLines.forEach((line, index) => {
+      ctx.fillText(line, x, bodyY + index * layout.bodyLineHeight);
+    });
+  }
+  ctx.restore();
+}
+
+function fitV2StoryText(spec, maxWidth, maxHeight, options = {}) {
+  const s = getScale();
+  const headlineSource = splitV2TextLines(spec.headline);
+  const bodySource = splitV2TextLines(spec.body);
+  let headlineSize = (options.headlineMax || 112) * s;
+  const headlineMin = (options.headlineMin || 68) * s;
+  const bodyBaseRatio = (options.bodyMax || 68) / (options.headlineMax || 112);
+  const bodyMin = (options.bodyMin || 46) * s;
+  const lineRatio = options.lineRatio || 1.2;
+  const bodyRatio = options.bodyRatio || 1.24;
+  const gapBase = (options.gap || 62) * s;
+
+  while (headlineSize >= headlineMin) {
+    const bodySize = Math.max(bodyMin, headlineSize * bodyBaseRatio);
+    const headlineLines = headlineSource.flatMap((line) => wrapWords(line, maxWidth, headlineSize)).slice(0, 5);
+    const bodyLines = bodySource.flatMap((line) => wrapWords(line, maxWidth, bodySize)).slice(0, 5);
+    const headlineLineHeight = headlineSize * lineRatio;
+    const bodyLineHeight = bodySize * bodyRatio;
+    const gap = bodyLines.length ? gapBase : 0;
+    const totalHeight = headlineLines.length * headlineLineHeight + gap + bodyLines.length * bodyLineHeight;
+    if (totalHeight <= maxHeight || headlineSize <= headlineMin) {
+      return { headlineLines, bodyLines, headlineSize, bodySize, headlineLineHeight, bodyLineHeight, gap };
+    }
+    headlineSize -= 4 * s;
+  }
+
+  return {
+    headlineLines: headlineSource,
+    bodyLines: bodySource,
+    headlineSize,
+    bodySize: Math.max(bodyMin, headlineSize * bodyBaseRatio),
+    headlineLineHeight: headlineSize * lineRatio,
+    bodyLineHeight: Math.max(bodyMin, headlineSize * bodyBaseRatio) * bodyRatio,
+    gap: gapBase,
+  };
+}
+
+function wrapWords(text, maxWidth, fontSize) {
+  const words = String(text || "").trim().split(/\s+/g).filter(Boolean);
+  const lines = [];
+  let line = "";
+  ctx.save();
+  ctx.font = v2HandFont(fontSize);
+  words.forEach((word) => {
+    const next = line ? `${line} ${word}` : word;
+    if (line && ctx.measureText(next).width > maxWidth) {
+      lines.push(line);
+      line = word;
+    } else {
+      line = next;
+    }
+  });
+  if (line) lines.push(line);
+  ctx.restore();
+  return lines.length ? lines : [text];
+}
+
+function v2HandFont(size) {
+  return `300 ${size}px "Chalkboard SE", "Marker Felt", "Noteworthy", "Comic Sans MS", cursive`;
+}
+
+function drawV2MiniScreenTimeCard(spec, x, y, w, h) {
+  const s = getScale();
+  ctx.save();
+  drawRoundRect(ctx, x, y, w, h, 42 * s);
+  ctx.fillStyle = "rgba(23,24,31,0.9)";
+  ctx.shadowColor = "rgba(80,98,160,0.52)";
+  ctx.shadowBlur = 42 * s;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,255,255,0.09)";
+  ctx.lineWidth = 1.5 * s;
+  ctx.stroke();
+
+  ctx.textBaseline = "alphabetic";
+  ctx.textAlign = "left";
+  ctx.font = `700 ${38 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#a9a9b2";
+  ctx.fillText("Last Week's Average", x + 54 * s, y + 70 * s);
+
+  ctx.font = `900 ${86 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#fff";
+  ctx.fillText(spec.average, x + 54 * s, y + 154 * s);
+  drawTrendBadgeSmall(spec, x + 572 * s, y + 128 * s);
+
+  drawV2MiniChart(spec, x + 62 * s, y + 196 * s, w - 196 * s, 174 * s);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.09)";
+  ctx.lineWidth = 1.4 * s;
+  ctx.beginPath();
+  ctx.moveTo(x + 54 * s, y + h - 78 * s);
+  ctx.lineTo(x + w - 54 * s, y + h - 78 * s);
+  ctx.stroke();
+
+  ctx.font = `800 ${38 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#f3f3f6";
+  ctx.fillText("Total Screen Time", x + 54 * s, y + h - 30 * s);
+  ctx.textAlign = "right";
+  ctx.fillStyle = "#b7b5be";
+  ctx.fillText(spec.total, x + w - 54 * s, y + h - 30 * s);
+  ctx.restore();
+}
+
+function drawTrendBadgeSmall(spec, x, y) {
+  const s = getScale();
+  ctx.save();
+  ctx.fillStyle = "#b8b7bf";
+  ctx.beginPath();
+  ctx.arc(x, y - 18 * s, 22 * s, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.strokeStyle = "#171820";
+  ctx.lineWidth = 5 * s;
+  ctx.lineCap = "round";
+  ctx.beginPath();
+  if (spec.direction === "down") {
+    ctx.moveTo(x, y - 30 * s);
+    ctx.lineTo(x, y - 6 * s);
+    ctx.moveTo(x - 12 * s, y - 16 * s);
+    ctx.lineTo(x, y - 4 * s);
+    ctx.lineTo(x + 12 * s, y - 16 * s);
+  } else {
+    ctx.moveTo(x, y - 6 * s);
+    ctx.lineTo(x, y - 30 * s);
+    ctx.moveTo(x - 12 * s, y - 20 * s);
+    ctx.lineTo(x, y - 32 * s);
+    ctx.lineTo(x + 12 * s, y - 20 * s);
+  }
+  ctx.stroke();
+  ctx.font = `700 ${36 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#b8b7bf";
+  ctx.fillText(`${spec.change} from last week`, x + 42 * s, y - 4 * s);
+  ctx.restore();
+}
+
+function drawV2MiniChart(spec, x, y, w, h) {
+  const s = getScale();
+  const chartBottom = y + h;
+  const chartRight = x + w;
+  const labels = ["S", "M", "T", "W", "T", "F", "S"];
+  const dayValues = spec.days.map(parseDurationToHours);
+  while (dayValues.length < 7) dayValues.push(dayValues[dayValues.length - 1] || 8);
+  const maxHours = getV2ChartMaxHours(dayValues, parseDurationToHours(spec.average));
+  const avgY = chartBottom - (parseDurationToHours(spec.average) / maxHours) * h;
+  const slot = w / 7;
+  const barW = Math.min(62 * s, slot - 30 * s);
+
+  ctx.strokeStyle = "rgba(255,255,255,0.08)";
+  ctx.lineWidth = 1.1 * s;
+  for (let i = 0; i <= 4; i += 1) {
+    const gy = y + (h * i) / 4;
+    ctx.beginPath();
+    ctx.moveTo(x, gy);
+    ctx.lineTo(chartRight, gy);
+    ctx.stroke();
+  }
+
+  ctx.strokeStyle = "#68df83";
+  ctx.lineWidth = 3 * s;
+  ctx.setLineDash([8 * s, 12 * s]);
+  ctx.beginPath();
+  ctx.moveTo(x, avgY);
+  ctx.lineTo(chartRight, avgY);
+  ctx.stroke();
+  ctx.setLineDash([]);
+
+  spec.days.slice(0, 7).forEach((day, index) => {
+    const hours = parseDurationToHours(day);
+    const barH = Math.max(34 * s, (hours / maxHours) * h);
+    const bx = x + slot * index + (slot - barW) / 2;
+    const by = chartBottom - barH;
+    drawStackedBar(bx, by, barW, barH, index);
+    ctx.font = `700 ${28 * s}px Georgia, "Times New Roman", serif`;
+    ctx.fillStyle = "#85828c";
+    ctx.fillText(labels[index], bx + 4 * s, chartBottom + 34 * s);
+  });
+
+  ctx.font = `700 ${32 * s}px Georgia, "Times New Roman", serif`;
+  ctx.fillStyle = "#85828c";
+  ctx.fillText(`${maxHours}h`, chartRight + 24 * s, y + 10 * s);
+  ctx.fillText(`${maxHours / 2}h`, chartRight + 24 * s, y + h * 0.52);
+  ctx.fillText("0", chartRight + 24 * s, chartBottom + 8 * s);
+  ctx.fillStyle = "#68df83";
+  ctx.fillText("avg", chartRight + 24 * s, avgY + 10 * s);
+}
+
+function getV2ChartMaxHours(dayValues, average) {
+  const peak = Math.max(average, ...dayValues.filter(Number.isFinite));
+  if (peak <= 2) return 4;
+  if (peak <= 4) return 6;
+  if (peak <= 7) return 10;
+  return 14;
+}
+
+function drawV2Headline(spec, x, y, fontSize, lineHeight, maxWidth) {
+  const lines = splitV2TextLines(spec.headline);
+  const highlight = String(spec.highlight || "").trim();
+  let size = fontSize;
+  while (size > 48 * getScale()) {
+    ctx.font = `400 ${size}px "Chalkboard SE", "Marker Felt", "Noteworthy", "Comic Sans MS", cursive`;
+    if (lines.every((line) => ctx.measureText(line).width <= maxWidth)) break;
+    size -= 4 * getScale();
+  }
+
+  ctx.save();
+  ctx.textBaseline = "top";
+  ctx.shadowColor = "rgba(255,255,255,0.36)";
+  ctx.shadowBlur = 10 * getScale();
+  ctx.font = `400 ${size}px "Chalkboard SE", "Marker Felt", "Noteworthy", "Comic Sans MS", cursive`;
+  lines.forEach((line, index) => {
+    const ly = y + index * lineHeight;
+    const upper = line.toUpperCase();
+    const mark = highlight.toUpperCase();
+    const at = mark ? upper.indexOf(mark) : -1;
+    if (at >= 0) {
+      const before = line.slice(0, at);
+      const marked = line.slice(at, at + highlight.length);
+      const after = line.slice(at + highlight.length);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(before, x, ly);
+      const hx = x + ctx.measureText(before).width;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(marked, hx, ly);
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(after, hx + ctx.measureText(marked).width, ly);
+    } else {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(line, x, ly);
+    }
+  });
+  ctx.restore();
+}
+
+function splitV2Headline(value) {
+  return String(value || "")
+    .replace(/\\n/g, "|")
+    .split("|")
+    .map((line) => line.trim().toUpperCase())
+    .filter(Boolean);
+}
+
+function splitV2TextLines(value) {
+  return String(value || "")
+    .replace(/\\n/g, "|")
+    .split("|")
+    .map((line) => line.trim())
+    .filter(Boolean);
+}
+
+function drawV2Phone({ x, y, w, h, kind, app, name }) {
+  const s = getScale();
+  ctx.save();
+  drawRoundRect(ctx, x, y, w, h, 46 * s);
+  ctx.fillStyle = kind === "apple" ? "#242426" : "#1c1a18";
+  ctx.shadowColor = kind === "apple" ? "rgba(66,150,255,0.24)" : "rgba(229,190,96,0.22)";
+  ctx.shadowBlur = 24 * s;
+  ctx.fill();
+  ctx.shadowBlur = 0;
+  ctx.strokeStyle = "rgba(255,255,255,0.1)";
+  ctx.lineWidth = 1.3 * s;
+  ctx.stroke();
+
+  ctx.font = `800 ${24 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif`;
+  ctx.fillStyle = "#ffffff";
+  ctx.fillText(kind === "apple" ? "9:31" : "9:09", x + 48 * s, y + 62 * s);
+  ctx.textAlign = "right";
+  ctx.fillText(kind === "apple" ? "74" : "78", x + w - 48 * s, y + 62 * s);
+  ctx.textAlign = "left";
+
+  if (kind === "apple") {
+    drawHourglass(x + w / 2, y + 236 * s, 72 * s);
+    drawPhoneText("Time Limit", x + w / 2, y + 338 * s, 42 * s, "#ffffff", "800");
+    drawPhoneText(`You've reached your limit\non ${app}.`, x + w / 2, y + 400 * s, 34 * s, "#a7a5ae", "500", 1.28);
+    drawPillButton(x + 58 * s, y + h - 174 * s, w - 116 * s, 76 * s, "#3b8df2", "#d8fff7", "OK");
+    drawOutlineButton(x + 58 * s, y + h - 82 * s, w - 116 * s, 66 * s, "Ignore Limit");
+  } else {
+    drawV2CatThumb(x + w / 2, y + 242 * s, 130 * s);
+    drawPhoneText(`${name} locked ${app}`, x + w / 2, y + 356 * s, 37 * s, "#ffffff", "850");
+    drawPhoneText("Strict mode means strict.\nBack to the work.", x + w / 2, y + 414 * s, 33 * s, "#b8b3ad", "500", 1.28);
+    drawPillButton(x + 58 * s, y + h - 174 * s, w - 116 * s, 76 * s, "#e2bd61", "#4b2605", `Face ${name}`);
+    drawOutlineButton(x + 58 * s, y + h - 82 * s, w - 116 * s, 66 * s, "Close App");
+  }
+  ctx.restore();
+}
+
+function drawPhoneText(text, x, y, size, color, weight, lineRatio = 1.2) {
+  const s = getScale();
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "top";
+  ctx.font = `${weight} ${size}px -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif`;
+  ctx.fillStyle = color;
+  String(text)
+    .split("\n")
+    .forEach((line, index) => {
+      ctx.fillText(line, x, y + index * size * lineRatio);
+    });
+  ctx.restore();
+}
+
+function drawPillButton(x, y, w, h, fill, color, label) {
+  const s = getScale();
+  drawRoundRect(ctx, x, y, w, h, h / 2);
+  ctx.fillStyle = fill;
+  ctx.fill();
+  ctx.font = `800 ${28 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif`;
+  ctx.fillStyle = color;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + w / 2, y + h / 2);
+  ctx.textAlign = "left";
+}
+
+function drawOutlineButton(x, y, w, h, label) {
+  const s = getScale();
+  drawRoundRect(ctx, x, y, w, h, h / 2);
+  ctx.fillStyle = "rgba(8,8,8,0.2)";
+  ctx.fill();
+  ctx.strokeStyle = "rgba(255,255,255,0.13)";
+  ctx.lineWidth = 1.5 * s;
+  ctx.stroke();
+  ctx.font = `500 ${28 * s}px -apple-system, BlinkMacSystemFont, "SF Pro Display", Arial, sans-serif`;
+  ctx.fillStyle = "#d8d6dc";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText(label, x + w / 2, y + h / 2);
+  ctx.textAlign = "left";
+}
+
+function drawHourglass(cx, cy, size) {
+  const s = getScale();
+  ctx.save();
+  ctx.fillStyle = "#377ae6";
+  ctx.beginPath();
+  ctx.moveTo(cx - size * 0.42, cy - size * 0.5);
+  ctx.quadraticCurveTo(cx, cy - size * 0.52, cx + size * 0.42, cy - size * 0.5);
+  ctx.quadraticCurveTo(cx + size * 0.34, cy - size * 0.12, cx + size * 0.08, cy);
+  ctx.quadraticCurveTo(cx + size * 0.34, cy + size * 0.12, cx + size * 0.42, cy + size * 0.5);
+  ctx.quadraticCurveTo(cx, cy + size * 0.52, cx - size * 0.42, cy + size * 0.5);
+  ctx.quadraticCurveTo(cx - size * 0.34, cy + size * 0.12, cx - size * 0.08, cy);
+  ctx.quadraticCurveTo(cx - size * 0.34, cy - size * 0.12, cx - size * 0.42, cy - size * 0.5);
+  ctx.closePath();
+  ctx.fill();
+  ctx.strokeStyle = "rgba(34,34,38,0.72)";
+  ctx.lineWidth = 8 * s;
+  ctx.lineJoin = "round";
+  ctx.beginPath();
+  ctx.moveTo(cx - size * 0.22, cy + size * 0.3);
+  ctx.lineTo(cx, cy + size * 0.1);
+  ctx.lineTo(cx + size * 0.22, cy + size * 0.3);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.restore();
+}
+
+function drawV2CatThumb(cx, cy, size) {
+  const s = getScale();
+  if (!v2Cat.complete) return;
+  ctx.save();
+  ctx.shadowColor = "rgba(255,255,255,0.5)";
+  ctx.shadowBlur = 18 * s;
+  ctx.drawImage(v2Cat, cx - size / 2, cy - size / 2, size, size);
+  ctx.restore();
 }
 
 function drawScreenTimeSlide(spec) {
@@ -515,8 +1199,13 @@ function renderSlideList() {
     const button = document.createElement("button");
     button.className = `slide-chip${index === activeIndex ? " is-active" : ""}`;
     button.type = "button";
+    const evocatV2 = parseEvocatV2Slide(slide);
     const screenTime = parseScreenTimeSlide(slide);
-    const label = screenTime ? `Screen Time mockup (${screenTime.average})` : slide;
+    const label = evocatV2
+      ? `Evocat v2 ${/compare|limit/i.test(evocatV2.mode) ? "comparison" : "neon"}`
+      : screenTime
+        ? `Screen Time mockup (${screenTime.average})`
+        : slide;
     button.innerHTML = `<small>${String(index + 1).padStart(2, "0")}</small><span>${escapeHtml(label)}</span>`;
     button.addEventListener("click", () => {
       activeIndex = index;
@@ -539,11 +1228,10 @@ function makeDraft(topic, count) {
   const base = [
     clean,
     "Check your top app first\nThat is where the spiral usually starts.",
-    "[screen-time]\naverage: 10h 39m\nchange: 11%\ntotal: 74h 38m\ndays: 10h 5m, 12h 10m, 11h 20m, 7h 48m, 7h 42m, 8h 18m, 9h 4m\ncategories:\nSocial: 62h 12m\nEntertainment: 5h 25m\nShopping & Food: 2h 58m\n[/screen-time]",
+    "[evocat-v2]\nmode: screen-time\nheadline: Is this your Screen Time?\naverage: 8h 58m\nchange: 13%\ntotal: 62h 46m\ndays: 8h 40m, 9h 58m, 9h 18m, 9h 22m, 10h 45m, 9h 24m, 8h 51m\n[/evocat-v2]",
+    "[evocat-v2]\nmode: limit-compare\nheadline: Apple gives you an exit.|EvoCat gives you friction.\nhighlight: EvoCat\napple-app: Instagram\nevocat-app: Instagram\nevocat-name: EvoCat\n[/evocat-v2]",
     "Protect your worst time\nBedtime, mornings, work, or study.",
     "Start with one clean hour\nNot a perfect day.",
-    "Don't fix the whole phone\nPick the app you reopen automatically.",
-    "Move the app out of reach\nLess visible means less automatic.",
     "The goal is not zero phone use\nThe goal is fewer automatic openings.",
     "If you keep going back to the same app\nTry EvoCat on the App Store.",
   ];
@@ -704,6 +1392,7 @@ Use this TikTok-ready structure:
 - Slide 1: a 5-9 word direct hook that lands in under 2 seconds.
 - Middle slides: specific useful steps, one idea per slide.
 - Optional middle visual: use a fake Screen Time screenshot slide when it makes the problem feel concrete.
+- For the new neon cat visual style, use an [evocat-v2] block as its own slide.
 - Final slide: soft EvoCat CTA that connects directly to the problem.
 
 Copy rules:
@@ -724,6 +1413,24 @@ Social: 62h 12m
 Entertainment: 5h 25m
 Shopping & Food: 2h 58m
 [/screen-time]
+- Preferred v2 visual slide:
+[evocat-v2]
+mode: screen-time
+headline: Is this your Screen Time?
+average: 8h 58m
+change: 13%
+total: 62h 46m
+days: 8h 40m, 9h 58m, 9h 18m, 9h 22m, 10h 45m, 9h 24m, 8h 51m
+[/evocat-v2]
+- Apple vs EvoCat comparison slide:
+[evocat-v2]
+mode: limit-compare
+headline: Apple gives you an exit.|EvoCat gives you friction.
+highlight: EvoCat
+apple-app: Instagram
+evocat-app: Instagram
+evocat-name: EvoCat
+[/evocat-v2]
 - Last slide should be similar in tone to: If you keep going back to the same app / Try EvoCat on the App Store.
 
 Return only the slide texts separated by one blank line.`;

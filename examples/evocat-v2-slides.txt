@@ -1,0 +1,48 @@
+[evocat-v2]
+mode: screen-time
+headline: Is this your Screen Time?
+average: 8h 58m
+change: 13%
+direction: up
+total: 62h 46m
+days: 8h 40m, 9h 58m, 9h 18m, 9h 22m, 10h 45m, 9h 24m, 8h 51m
+[/evocat-v2]
+
+[evocat-v2]
+mode: text
+headline: That number|is not rest.
+body: It is how often your brain runs away.
+[/evocat-v2]
+
+[evocat-v2]
+mode: text
+headline: The loop starts|tiny.
+body: One quick check while you wait.
+[/evocat-v2]
+
+[evocat-v2]
+mode: text
+headline: Then boredom|gets a button.
+body: Every empty second becomes the same app.
+[/evocat-v2]
+
+[evocat-v2]
+mode: limit-compare
+headline: Apple gives you an exit.|EvoCat gives you friction.
+highlight: EvoCat
+apple-app: Instagram
+evocat-app: Instagram
+evocat-name: EvoCat
+[/evocat-v2]
+
+[evocat-v2]
+mode: text
+headline: Pick the app|that steals your day.
+body: Lock it for one hour first.
+[/evocat-v2]
+
+[evocat-v2]
+mode: text
+headline: Reach for it again?
+body: Let EvoCat stop the loop.
+[/evocat-v2]
