@@ -40,6 +40,8 @@ The slide text box accepts:
 - a `[screen-time]` block for one fake Screen Time visual slide
 - an `[evocat-v2]` block for the neon cat visual style or Apple-vs-EvoCat comparison slide
 
+Plain text slides render in the v2 neon speech-bubble style by default. Use `[evocat-v2]` blocks when a slide needs `image:`, Screen Time values, or comparison mode. In v2 blocks, use `headline:` for titles; `title:` and `hook:` are accepted aliases.
+
 Chinese text is supported with a bundled font in `assets/fonts/`. See `examples/chinese-slides.txt`. After pulling changes, run `npm install` so the local agent has the renderer dependencies.
 
 Screen Time mockup slides are supported in both the browser and CLI renderer. Use one block as one slide:

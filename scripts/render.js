@@ -199,66 +199,32 @@ function renderSvg({
   const screenTime = parseScreenTimeSlide(text);
   if (screenTime) return renderScreenTimeSvg({ spec: screenTime, font: cjkFont, size });
 
-  const scale = size / 2048;
-  const s = (value) => value * scale;
-  const main = fitText(text, s(1240), s(650), s(134), s(66), 1.34);
-  const dots = renderDots(size, scale);
-  const fontFamily = displayFontFor(text);
-  const mainText = hasCjk(text)
-    ? renderTextPaths({
-        lines: main.lines,
-        font: cjkFont,
-        fontSize: main.fontSize,
-        lineHeight: main.lineHeight,
-        x: s(344),
-        y: s(570),
-      })
-    : renderTextElement({
-        lines: main.lines,
-        fontFamily,
-        fontSize: main.fontSize,
-        lineHeight: main.lineHeight,
-        x: s(344),
-        y: s(570),
-      });
+  return renderEvocatV2Svg({
+    spec: parsePlainTextV2Slide(text),
+    v2CatBase64,
+    v2ImageDataUrl: "",
+    size,
+  });
+}
 
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-  <defs>
-    <radialGradient id="bgGlow" cx="35%" cy="53%" r="48%">
-      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.045"/>
-      <stop offset="36%" stop-color="#ffffff" stop-opacity="0.018"/>
-      <stop offset="100%" stop-color="#000000" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="cardGlow" x="-8%" y="-8%" width="116%" height="116%">
-      <feDropShadow dx="0" dy="0" stdDeviation="${s(13)}" flood-color="#ffffff" flood-opacity="0.64"/>
-    </filter>
-    <filter id="iconGlow" x="-20%" y="-20%" width="140%" height="140%">
-      <feDropShadow dx="0" dy="0" stdDeviation="${s(22)}" flood-color="#37457d" flood-opacity="0.55"/>
-    </filter>
-  </defs>
-
-  <rect width="${size}" height="${size}" fill="#171716"/>
-  <rect width="${size}" height="${size}" fill="url(#bgGlow)"/>
-  <g opacity="0.17">${dots}</g>
-
-  <rect x="${s(210)}" y="${s(318)}" width="${s(1628)}" height="${s(1438)}" rx="${s(150)}"
-    fill="#000000" stroke="#ffffff" stroke-opacity="0.82" stroke-width="${s(2.2)}" filter="url(#cardGlow)"/>
-  <rect x="${s(210)}" y="${s(318)}" width="${s(1628)}" height="${s(1438)}" rx="${s(150)}"
-    fill="none" stroke="#ffffff" stroke-opacity="0.92" stroke-width="${s(1.2)}"/>
-
-  ${mainText}
-
-  <text x="${s(344)}" y="${s(1368)}" fill="#fffdf7"
-    font-family="Georgia, 'Times New Roman', serif" font-weight="900"
-    font-size="${s(42)}" dominant-baseline="text-before-edge">Focus Advice by</text>
-  <text x="${s(344)}" y="${s(1440)}" fill="#fffdf7"
-    font-family="Georgia, 'Times New Roman', serif" font-weight="900"
-    font-size="${s(58)}" dominant-baseline="text-before-edge">${escapeXml(brand)}</text>
-
-  <image x="${s(1185)}" y="${s(1216)}" width="${s(470)}" height="${s(470)}"
-    opacity="0.9" filter="url(#iconGlow)" href="data:image/png;base64,${iconBase64}"/>
-</svg>`;
+function parsePlainTextV2Slide(value) {
+  const lines = splitV2TextLines(value);
+  return {
+    mode: "text",
+    headline: lines[0] || "",
+    highlight: "LIFE.",
+    average: "8h 58m",
+    change: "13%",
+    direction: "up",
+    total: "62h 46m",
+    days: ["8h 11m", "9h 26m", "8h 41m", "8h 54m", "9h 50m", "8h 47m", "8h 19m"],
+    appleApp: "Instagram",
+    evocatApp: "Discord",
+    evocatName: "Larry",
+    body: lines.slice(1).join("|"),
+    image: "",
+    imageFit: "cover",
+  };
 }
 
 function parseScreenTimeSlide(value) {
@@ -350,7 +316,7 @@ function parseEvocatV2Slide(value) {
     const key = pair[1].trim().toLowerCase().replace(/[ _]/g, "-");
     const val = pair[2].trim();
     if (key === "mode" || key === "type") spec.mode = val.toLowerCase();
-    if (key === "headline") spec.headline = val;
+    if (key === "headline" || key === "title" || key === "hook") spec.headline = val;
     if (key === "body" || key === "subtitle" || key === "subhead") spec.body = val;
     if (key === "image" || key === "photo" || key === "picture") spec.image = val;
     if (key === "image-fit" || key === "fit") spec.imageFit = val.toLowerCase();

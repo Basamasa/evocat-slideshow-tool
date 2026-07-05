@@ -265,14 +265,30 @@ function render() {
   } else if (screenTime) {
     drawScreenTimeSlide(screenTime);
   } else {
-    drawBackground();
-    drawCard();
-    drawMainText(slide);
-    drawFooter();
-    drawIcon();
+    drawEvocatV2Slide(parsePlainTextV2Slide(slide));
   }
   els.activeLabel.textContent = `Slide ${activeIndex + 1}`;
   renderSlideList();
+}
+
+function parsePlainTextV2Slide(value) {
+  const lines = splitV2TextLines(value);
+  return {
+    mode: "text",
+    headline: lines[0] || "",
+    highlight: "LIFE.",
+    average: "8h 58m",
+    change: "13%",
+    direction: "up",
+    total: "62h 46m",
+    days: ["8h 11m", "9h 26m", "8h 41m", "8h 54m", "9h 50m", "8h 47m", "8h 19m"],
+    appleApp: "Instagram",
+    evocatApp: "Discord",
+    evocatName: "Larry",
+    body: lines.slice(1).join("|"),
+    image: "",
+    imageFit: "cover",
+  };
 }
 
 function parseScreenTimeSlide(value) {
@@ -364,7 +380,7 @@ function parseEvocatV2Slide(value) {
     const key = pair[1].trim().toLowerCase().replace(/[ _]/g, "-");
     const val = pair[2].trim();
     if (key === "mode" || key === "type") spec.mode = val.toLowerCase();
-    if (key === "headline") spec.headline = val;
+    if (key === "headline" || key === "title" || key === "hook") spec.headline = val;
     if (key === "body" || key === "subtitle" || key === "subhead") spec.body = val;
     if (key === "image" || key === "photo" || key === "picture") spec.image = val;
     if (key === "image-fit" || key === "fit") spec.imageFit = val.toLowerCase();

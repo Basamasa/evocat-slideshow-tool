@@ -125,6 +125,8 @@ Rules for Screen Time mockups:
 
 Agents can include the newer neon cat/speech-bubble style as one slide by using this blank-line-separated block in `slides.txt`. It renders as an image-only visual slide.
 
+Plain text slides also render in the v2 neon speech-bubble style. Use `[evocat-v2]` blocks whenever the slide needs `image:`, Screen Time values, or comparison mode. Inside v2 blocks, prefer `headline:`, but `title:` and `hook:` are accepted aliases.
+
 Use text mode when a normal story slide should match the v2 black/neon bubble style:
 
 ```text
