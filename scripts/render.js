@@ -368,7 +368,7 @@ function renderEvocatV2Svg({
     </style>
   </defs>
   <rect width="${size}" height="${size}" fill="#000000"/>
-  <image x="${s(704)}" y="${s(1308)}" width="${s(640)}" height="${s(640)}" preserveAspectRatio="xMidYMid meet"
+  <image x="${s(704)}" y="${s(1360)}" width="${s(640)}" height="${s(640)}" preserveAspectRatio="xMidYMid meet"
     href="data:image/png;base64,${v2CatBase64}"/>
   ${scene}
 </svg>`;
@@ -413,11 +413,11 @@ function renderV2TextSceneSvg({ spec, v2ImageDataUrl, scale }) {
   }
 
   const s = (value) => round(value * scale);
-  return `${renderV2BubbleSvg({ x: s(170), y: s(154), w: s(1708), h: s(1158), r: s(154), scale })}
+  return `${renderV2BubbleSvg({ x: s(132), y: s(96), w: s(1784), h: s(1268), r: s(166), scale })}
   ${renderV2StoryTextSvg({
     spec,
     x: s(270),
-    y: s(294),
+    y: s(248),
     maxWidth: s(1510),
     maxHeight: s(680),
     scale,
@@ -436,11 +436,11 @@ function renderV2TextSceneSvg({ spec, v2ImageDataUrl, scale }) {
 function renderV2ImageTextSceneSvg({ spec, imageDataUrl, scale }) {
   const s = (value) => round(value * scale);
   const imageLayout = getV2ImageTextLayout(spec);
-  return `${renderV2BubbleSvg({ x: s(170), y: s(154), w: s(1708), h: s(1158), r: s(154), scale })}
+  return `${renderV2BubbleSvg({ x: s(132), y: s(96), w: s(1784), h: s(1268), r: s(166), scale })}
   ${renderV2StoryTextSvg({
     spec,
     x: s(270),
-    y: s(252),
+    y: s(194),
     maxWidth: s(1510),
         maxHeight: s(430),
     scale,
@@ -460,11 +460,11 @@ function renderV2ImageTextSceneSvg({ spec, imageDataUrl, scale }) {
 function getV2ImageTextLayout(spec) {
   const headlineLines = Math.max(1, splitV2Headline(spec.headline).length);
   const bodyLines = splitV2TextLines(spec.body).length;
-  let y = 620;
-  if (bodyLines && headlineLines > 1) y = 710;
-  else if (bodyLines) y = 670;
-  else if (headlineLines <= 1) y = 600;
-  return { x: 220, y, w: 1608, h: 1302 - y };
+  let y = 540;
+  if (bodyLines && headlineLines > 1) y = 624;
+  else if (bodyLines) y = 548;
+  else if (headlineLines <= 1) y = 520;
+  return { x: 172, y, w: 1704, h: 1330 - y };
 }
 
 function renderV2JobImageSvg({ imageDataUrl, x, y, w, h, fit, scale }) {

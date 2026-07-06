@@ -415,7 +415,7 @@ function drawV2Background() {
   ctx.fillRect(0, 0, canvas.width, canvas.height);
 
   if (v2Cat.complete) {
-    ctx.drawImage(v2Cat, 704 * s, 1308 * s, 640 * s, 640 * s);
+    ctx.drawImage(v2Cat, 704 * s, 1360 * s, 640 * s, 640 * s);
   }
 }
 
@@ -475,8 +475,8 @@ function drawV2TextScene(spec) {
   }
 
   const s = getScale();
-  drawV2Bubble(170 * s, 154 * s, 1708 * s, 1158 * s, 154 * s);
-  drawV2StoryText(spec, 270 * s, 294 * s, 1510 * s, 680 * s, {
+  drawV2Bubble(132 * s, 96 * s, 1784 * s, 1268 * s, 166 * s);
+  drawV2StoryText(spec, 270 * s, 248 * s, 1510 * s, 680 * s, {
     headlineMax: 148,
     headlineMin: 96,
     bodyMax: 86,
@@ -490,8 +490,8 @@ function drawV2TextScene(spec) {
 function drawV2ImageTextScene(spec) {
   const s = getScale();
   const imageLayout = getV2ImageTextLayout(spec);
-  drawV2Bubble(170 * s, 154 * s, 1708 * s, 1158 * s, 154 * s);
-  drawV2StoryText(spec, 270 * s, 252 * s, 1510 * s, 430 * s, {
+  drawV2Bubble(132 * s, 96 * s, 1784 * s, 1268 * s, 166 * s);
+  drawV2StoryText(spec, 270 * s, 194 * s, 1510 * s, 430 * s, {
     headlineMax: 132,
     headlineMin: 76,
     bodyMax: 76,
@@ -506,11 +506,11 @@ function drawV2ImageTextScene(spec) {
 function getV2ImageTextLayout(spec) {
   const headlineLines = Math.max(1, splitV2Headline(spec.headline).length);
   const bodyLines = splitV2TextLines(spec.body).length;
-  let y = 620;
-  if (bodyLines && headlineLines > 1) y = 710;
-  else if (bodyLines) y = 670;
-  else if (headlineLines <= 1) y = 600;
-  return { x: 220, y, w: 1608, h: 1302 - y };
+  let y = 540;
+  if (bodyLines && headlineLines > 1) y = 624;
+  else if (bodyLines) y = 548;
+  else if (headlineLines <= 1) y = 520;
+  return { x: 172, y, w: 1704, h: 1330 - y };
 }
 
 function drawV2JobImage(src, x, y, w, h, fit = "cover") {
