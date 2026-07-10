@@ -8,6 +8,16 @@ import * as fontkit from "fontkit";
 const ROOT = path.resolve(new URL("..", import.meta.url).pathname);
 const DEFAULT_ICON = path.join(ROOT, "assets", "ironcat-app-icon.png");
 const DEFAULT_V2_CAT = path.join(ROOT, "assets", "ironcat_transparent_bg.png");
+const FIRST_SLIDE_IMAGE_DIR = path.join(ROOT, "assets", "screen-time-skills-first-slide");
+const FIRST_SLIDE_IMAGES = {
+  "1": "firstslide1.jpg",
+  "2": "firstslide2.png",
+  "3": "firstslide3.gif",
+  "4": "firstslide4.jpg",
+  "5": "firstslide5.jpg",
+  "6": "firstslide6.png",
+  "7": "firstslide7.jpeg",
+};
 const CJK_FONT_PATH = path.join(
   ROOT,
   "assets",
@@ -154,8 +164,23 @@ async function loadSlideAssets(slide, baseDir) {
 
 function resolveSlideAssetPath(value, baseDir) {
   const raw = String(value || "").trim();
+  const bundled = resolveBundledV2ImagePath(raw);
+  if (bundled) return bundled;
   if (path.isAbsolute(raw)) return raw;
   return path.resolve(baseDir, raw);
+}
+
+function resolveBundledV2ImagePath(raw) {
+  const match = raw.match(/^(?:first-slide|screen-time-skills):\s*(.+)$/i);
+  if (!match) return "";
+  const key = match[1].trim().toLowerCase();
+  const filename =
+    FIRST_SLIDE_IMAGES[key] ||
+    Object.values(FIRST_SLIDE_IMAGES).find((item) => item.toLowerCase() === key);
+  if (!filename) {
+    throw new Error(`Unknown bundled first-slide image "${raw}". Use first-slide:1 through first-slide:7.`);
+  }
+  return path.join(FIRST_SLIDE_IMAGE_DIR, filename);
 }
 
 function mimeTypeFor(filePath) {

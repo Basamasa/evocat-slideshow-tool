@@ -170,6 +170,7 @@ Rules for Evocat v2 visuals:
 - For a strong opening, use `mode: screen-time` on slide 1 with a short handwritten hook above the generated chart.
 - Visual/image slides should use a title only. Do not add `body`, subtitle, or caption text to `mode: screen-time` or `mode: limit-compare`.
 - For job, craft, skill, or "replace scrolling with learning X" topics, OpenClaw/agents should download relevant images for that exact skill before rendering. Put them in `daily_posts/YYYY-MM-DD-topic-slug/source_images/` and reference them with `image: source_images/file.jpg`.
+- For the "Your Screen Time could teach 5 skills" topic, slide 1 should use one bundled first-slide asset from `assets/screen-time-skills-first-slide/`. In v2 blocks, agents can reference these as `image: first-slide:1` through `image: first-slide:7`; use a static PNG/JPG option for CLI-rendered decks when possible.
 - Use `image-fit: contain` when the image contains a tool, diagram, object, or practice result that must remain fully visible. Use cover-style cropping only when the image is decorative or the subject fills the frame.
 - Match the image to the exact slide claim. A slide about pins/tension should use a lock mechanism or pin/tumbler visual; a slide about practice locks should show a practice lock.
 - Use rendered Screen Time to show the current phone-time problem, not tiny practice-time totals. For example, show 7h/day average screen time, then adjacent text can say that reclaiming 60-90 minutes is enough practice time.

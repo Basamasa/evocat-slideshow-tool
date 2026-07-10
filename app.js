@@ -2,6 +2,15 @@ const canvas = document.getElementById("previewCanvas");
 const ctx = canvas.getContext("2d");
 const LATIN_DISPLAY_FONT = 'Georgia, "Times New Roman", serif';
 const CJK_DISPLAY_FONT = '"Noto Serif SC", "Songti SC", "STSong", "SimSun", serif';
+const FIRST_SLIDE_IMAGES = {
+  "1": "firstslide1.jpg",
+  "2": "firstslide2.png",
+  "3": "firstslide3.gif",
+  "4": "firstslide4.jpg",
+  "5": "firstslide5.jpg",
+  "6": "firstslide6.png",
+  "7": "firstslide7.jpeg",
+};
 
 const els = {
   topic: document.getElementById("topic"),
@@ -541,7 +550,7 @@ function drawV2JobImage(src, x, y, w, h, fit = "cover") {
 }
 
 function getV2SlideImage(src) {
-  const key = String(src || "").trim();
+  const key = resolveBundledV2ImagePath(String(src || "").trim());
   if (!v2SlideImages.has(key)) {
     const image = new Image();
     image.onload = render;
@@ -549,6 +558,16 @@ function getV2SlideImage(src) {
     v2SlideImages.set(key, image);
   }
   return v2SlideImages.get(key);
+}
+
+function resolveBundledV2ImagePath(raw) {
+  const match = raw.match(/^(?:first-slide|screen-time-skills):\s*(.+)$/i);
+  if (!match) return raw;
+  const key = match[1].trim().toLowerCase();
+  const filename =
+    FIRST_SLIDE_IMAGES[key] ||
+    Object.values(FIRST_SLIDE_IMAGES).find((item) => item.toLowerCase() === key);
+  return filename ? `./assets/screen-time-skills-first-slide/${filename}` : raw;
 }
 
 function drawImageCover(image, x, y, w, h) {

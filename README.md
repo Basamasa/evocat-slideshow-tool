@@ -87,6 +87,8 @@ Use `mode: limit-compare` to create a generated comparison of Apple's `Ignore Li
 
 For job/skill topics, download relevant images into the daily post folder and reference them from v2 text slides with `image:`. Use `image-fit: contain` when the object or diagram must remain fully visible. Relative image paths are resolved from the `slides.txt` folder. The final EvoCat CTA can be text-only, and reusable app outcome images can live in `assets/`. Use Screen Time slides to show realistic current phone time, such as 7h/day, not tiny weekly practice totals.
 
+For the "Your Screen Time could teach 5 skills" topic, use one bundled first-slide image from `assets/screen-time-skills-first-slide/` on slide 1. V2 blocks support short aliases such as `image: first-slide:5`; use a static PNG/JPG option for CLI renders when possible. Other skill slides should still use downloaded or imagegen-created images in the daily post `source_images/` folder.
+
 ```text
 daily_posts/2026-07-05-night-scroll-lockpicking/
   slides.txt
