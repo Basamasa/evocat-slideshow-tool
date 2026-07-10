@@ -506,11 +506,11 @@ function drawV2ImageTextScene(spec) {
 function getV2ImageTextLayout(spec) {
   const headlineLines = Math.max(1, splitV2Headline(spec.headline).length);
   const bodyLines = splitV2TextLines(spec.body).length;
-  let y = 540;
-  if (bodyLines && headlineLines > 1) y = 624;
-  else if (bodyLines) y = 548;
-  else if (headlineLines <= 1) y = 520;
-  return { x: 172, y, w: 1704, h: 1330 - y };
+  let y = 514;
+  if (bodyLines && headlineLines > 1) y = 592;
+  else if (bodyLines) y = 522;
+  else if (headlineLines <= 1) y = 500;
+  return { x: 172, y, w: 1704, h: 1356 - y };
 }
 
 function drawV2JobImage(src, x, y, w, h, fit = "cover") {
@@ -845,7 +845,7 @@ function drawV2MiniChart(spec, x, y, w, h) {
   ctx.fillText(`${maxHours / 2}h`, chartRight + 24 * s, y + h * 0.52);
   ctx.fillText("0", chartRight + 24 * s, chartBottom + 8 * s);
   ctx.fillStyle = "#68df83";
-  ctx.fillText("avg", chartRight + 24 * s, avgY + 10 * s);
+  ctx.fillText("avg", chartRight + 24 * s, avgY - 12 * s);
 }
 
 function getV2ChartMaxHours(dayValues, average) {
@@ -1162,7 +1162,7 @@ function drawScreenTimeChart(spec, x, y, w, h) {
   ctx.fillText("7h", chartRight + 24 * s, y + h * 0.52);
   ctx.fillText("0", chartRight + 24 * s, chartBottom + 20 * s);
   ctx.fillStyle = "#6ade82";
-  ctx.fillText("avg", chartRight + 24 * s, avgY + 22 * s);
+  ctx.fillText("avg", chartRight + 24 * s, avgY - 18 * s);
 }
 
 function drawStackedBar(x, y, w, h, index) {

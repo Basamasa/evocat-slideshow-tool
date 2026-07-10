@@ -460,11 +460,11 @@ function renderV2ImageTextSceneSvg({ spec, imageDataUrl, scale }) {
 function getV2ImageTextLayout(spec) {
   const headlineLines = Math.max(1, splitV2Headline(spec.headline).length);
   const bodyLines = splitV2TextLines(spec.body).length;
-  let y = 540;
-  if (bodyLines && headlineLines > 1) y = 624;
-  else if (bodyLines) y = 548;
-  else if (headlineLines <= 1) y = 520;
-  return { x: 172, y, w: 1704, h: 1330 - y };
+  let y = 514;
+  if (bodyLines && headlineLines > 1) y = 592;
+  else if (bodyLines) y = 522;
+  else if (headlineLines <= 1) y = 500;
+  return { x: 172, y, w: 1704, h: 1356 - y };
 }
 
 function renderV2JobImageSvg({ imageDataUrl, x, y, w, h, fit, scale }) {
@@ -661,7 +661,7 @@ function renderV2MiniChartSvg({ spec, x, y, w, h, scale }) {
     <text class="v2-serif" x="${chartRight + s(24)}" y="${y + s(10)}" font-size="${s(32)}" font-weight="700" fill="#85828c">${maxHours}h</text>
     <text class="v2-serif" x="${chartRight + s(24)}" y="${y + h * 0.52}" font-size="${s(32)}" font-weight="700" fill="#85828c">${maxHours / 2}h</text>
     <text class="v2-serif" x="${chartRight + s(24)}" y="${chartBottom + s(8)}" font-size="${s(32)}" font-weight="700" fill="#85828c">0</text>
-    <text class="v2-serif" x="${chartRight + s(24)}" y="${round(avgY + s(10))}" font-size="${s(32)}" font-weight="700" fill="#68df83">avg</text>
+    <text class="v2-serif" x="${chartRight + s(24)}" y="${round(avgY - s(12))}" font-size="${s(32)}" font-weight="700" fill="#68df83">avg</text>
   </g>`;
 }
 
@@ -904,7 +904,7 @@ function renderScreenTimeChartSvg({ spec, x, y, w, h, font, scale }) {
     ${renderSingleLineTextPath({ text: "14h", font, fontSize: s(64), x: chartRight + s(24), y: y + s(22), fill: "#74717a" })}
     ${renderSingleLineTextPath({ text: "7h", font, fontSize: s(64), x: chartRight + s(24), y: y + h * 0.52, fill: "#74717a" })}
     ${renderSingleLineTextPath({ text: "0", font, fontSize: s(64), x: chartRight + s(24), y: chartBottom + s(20), fill: "#74717a" })}
-    ${renderSingleLineTextPath({ text: "avg", font, fontSize: s(64), x: chartRight + s(24), y: round(avgY + s(22)), fill: "#6ade82" })}
+    ${renderSingleLineTextPath({ text: "avg", font, fontSize: s(64), x: chartRight + s(24), y: round(avgY - s(18)), fill: "#6ade82" })}
   </g>`;
 }
 
